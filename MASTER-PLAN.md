@@ -344,6 +344,23 @@ driven — v1 websites, then blogs/stores (modules already there), then web apps
 auth+DB (module: `stack/supabase` or our Go backend templates), then custom software.
 The engine doesn't change; the template/module library grows.
 
+**Launch target model (core product decision, 2026-08-20):** every product built
+with hive chooses one of three launch targets — a choice any standard framework
+must offer, and all three run the SAME engine through the SAME `deploy.Driver`
+interface; what changes is who owns the credentials and where the engine runs:
+
+| Target | Engine runs | Credentials | Cost model |
+|---|---|---|---|
+| **Launch with us** (managed) | our workers on our infra (DigitalOcean in our case — an implementation detail, not part of the framework contract) | ours | metered: cost modules attach here (build-minutes, agent-minutes, bandwidth, storage) |
+| **Launch locally** (desktop/CLI) | user's machine via hive CLI or hive desktop (§5.8) | user's `.env` | free — their compute |
+| **Launch on own infra** (BYO) | user's machine or CI | user's `.env` (their Vercel token, their droplet, their cloud) | free — their bill |
+
+The platform is deliberately a THIN layer: it connects to infra and attaches cost
+modules; it never becomes the only way to deploy. BYO uses the exact drivers the
+managed path uses (vercel today; droplet next; more via the driver interface), so
+leaving the managed tier is always possible — the anti-lock-in guarantee that
+also makes "connect GitHub" credible.
+
 **Launch surface:** the framework's public site ships on **nishgaba.com** (already
 live on Vercel), replacing the personal homepage — the product carries the brand.
 It includes an "About the creator" page (Nishchal Gaba) as the default; the
