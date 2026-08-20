@@ -34,15 +34,16 @@ export default function Home() {
     <main>
       <section className="mx-auto max-w-4xl px-6 pt-20 pb-14 text-center">
         <p className="font-mono text-xs uppercase tracking-[0.2em] text-[var(--brand)]">
-          from prompt to production
+          your ai product deployment assistant
         </p>
         <h1 className="mt-4 text-5xl font-bold tracking-tight text-balance">
           Launch your product live, in minutes
         </h1>
         <p className="mx-auto mt-6 max-w-2xl text-lg text-[var(--muted)]">
-          Nish Alpha Hive turns an idea into a deployed, production-grade
-          product — for developers and non-developers. The AI proposes; eight
-          deterministic gates dispose. Nothing ships unless every check passes.
+          Nish Alpha Hive is an AI assistant that takes your product from idea
+          to production — for developers and non-developers. The assistant
+          proposes; eight deterministic gates dispose. Nothing ships unless
+          every check passes.
         </p>
         <div className="mt-10 flex justify-center gap-4">
           <Link
@@ -119,9 +120,10 @@ export default function Home() {
             "@context": "https://schema.org",
             "@type": "SoftwareApplication",
             name: "Nish Alpha Hive",
+            alternateName: "AI product deployment assistant",
             applicationCategory: "DeveloperApplication",
             description:
-              "Launch products to production in minutes with deterministic policy gates — managed, BYO infra, or local desktop.",
+              "An AI product deployment assistant that launches products to production in minutes with deterministic policy gates — managed, BYO infra, or local desktop.",
             author: { "@type": "Person", name: "Nishchal Gaba" },
           }),
         }}

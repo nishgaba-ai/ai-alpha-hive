@@ -9,8 +9,8 @@ site:
       steps: ["/", "/founder"]
 pages:
   /:
-    intent: "convince: production launches in minutes, checks never optional"
-    keywords: [launch website ai, prompt to production, ai deploy platform]
+    intent: "convince: the AI product deployment assistant — production launches in minutes, checks never optional"
+    keywords: [ai product deployment assistant, launch website ai, prompt to production, ai deploy platform]
     sections: [hero, launch-targets, gates, how-it-works]
   /founder:
     intent: "trust: who is behind this"

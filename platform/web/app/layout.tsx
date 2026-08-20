@@ -11,11 +11,11 @@ export const metadata: Metadata = {
     template: "%s · Nish Alpha Hive",
   },
   description:
-    "Launch your product to production in minutes — with us, on your own infra, or from your desktop. Every deploy passes eight policy gates first.",
+    "Nish Alpha Hive is your AI product deployment assistant — it takes your product from prompt to production in minutes, and nothing ships unless every policy gate passes.",
   openGraph: {
-    title: "Nish Alpha Hive",
+    title: "Nish Alpha Hive — AI product deployment assistant",
     description:
-      "From prompt to production: gate-checked launches for devs and non-devs.",
+      "From prompt to production: an AI assistant that launches gate-checked products for devs and non-devs.",
     url: siteUrl,
     siteName: "Nish Alpha Hive",
     type: "website",
