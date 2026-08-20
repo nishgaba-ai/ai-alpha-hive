@@ -58,6 +58,7 @@ func Registry() []Gate {
 		&TypesGate{},
 		&LintGate{},
 		&BuildGate{},
+		&TestGate{},
 		&LinksGate{},
 		&SEOGate{},
 	}

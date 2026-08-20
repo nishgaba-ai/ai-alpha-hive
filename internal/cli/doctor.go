@@ -19,7 +19,7 @@ var toolChecks = []toolCheck{
 	{"git", []string{"--version"}, true, "install git: https://git-scm.com"},
 	{"node", []string{"--version"}, true, "install Node.js >= 20: https://nodejs.org"},
 	{"npm", []string{"--version"}, true, "ships with Node.js"},
-	{"vercel", []string{"--version"}, false, "npm i -g vercel (needed for `hive ship --driver vercel`)"},
+	{"vercel", []string{"--version"}, false, "not required — `hive ship` runs it via npx automatically"},
 }
 
 func newDoctorCmd() *cobra.Command {

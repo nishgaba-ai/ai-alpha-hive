@@ -2,15 +2,21 @@
 
 ## Install
 
-Until binary releases ship (phase 1), build from source:
+Released binary (linux/macos):
 
 ```bash
-git clone https://github.com/nishgaba-ai/ai-alpha-hive
-cd ai-alpha-hive
-go build -o hive ./cmd/hive        # produces ./hive (hive.exe on Windows)
+curl -fsSL https://raw.githubusercontent.com/nishgaba-ai/ai-alpha-hive/main/scripts/install.sh | sh
 ```
 
-Requirements: Go ≥ 1.26, Node ≥ 20, git. Run `hive doctor` to verify.
+Windows: download the zip from
+[GitHub releases](https://github.com/nishgaba-ai/ai-alpha-hive/releases) and
+put `hive.exe` on your PATH. Or from source on any OS (Go ≥ 1.26):
+
+```bash
+go install github.com/nishgaba-ai/ai-alpha-hive/cmd/hive@latest
+```
+
+Requirements at runtime: Node ≥ 20, git. Run `hive doctor` to verify.
 
 ## Portability
 

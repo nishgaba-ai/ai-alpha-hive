@@ -16,7 +16,7 @@ them. Output is JSON (`hive check --json`) with `file:line`, severity, and a
 | build | `npm run build` succeeds | yes | ✅ implemented |
 | links | internal links resolve to routes or public files | yes | ✅ implemented |
 | seo | metadata+description, robots, sitemap (errors); OG, JSON-LD (warnings) | yes | ✅ implemented |
-| test | vitest/playwright if present | yes | phase 1.x |
+| test | the project's `npm test` script, when a real one exists | yes | ✅ implemented |
 | a11y | axe on built pages | warn→yes | phase 2 |
 | drift | content still serves declared intent/keywords | warn | phase 2 |
 | geo | AI-citability score, llms.txt | warn | phase 4 |

@@ -5,10 +5,11 @@ gates dispose: Claude (or any agent) does the creative work; `hive` owns
 structure, checks, deployment, and the dependency graph — so "all checks pass"
 is a property of the engine, never of a prompt.
 
-> Status: **phase 1 of [MASTER-PLAN.md](MASTER-PLAN.md)** — the golden path
-> works: `hive new` scaffolds a gate-passing Next.js site, seven gates run
-> (secrets, deps, types, lint, build, links, seo), and `hive ship` deploys to
-> Vercel with post-deploy verification. Intent graph and modules come next.
+> Status: **phase 1 of [MASTER-PLAN.md](MASTER-PLAN.md) complete** — the
+> golden path is live: `hive new` scaffolds a gate-passing Next.js site,
+> eight gates run (secrets, deps, types, lint, build, test, links, seo), and
+> `hive ship` deploys to Vercel with post-deploy verification. Verified with
+> a real production deploy. Intent graph and modules come next.
 
 ## What it does
 
@@ -28,18 +29,21 @@ as the engine behind a prompt-to-website product.
 ## Quickstart
 
 ```bash
-git clone https://github.com/nishgaba-ai/ai-alpha-hive
-cd ai-alpha-hive
-go build -o hive ./cmd/hive     # hive.exe on Windows
-./hive doctor                   # verify your environment
+# install (linux/macos; Windows: grab the zip from GitHub releases)
+curl -fsSL https://raw.githubusercontent.com/nishgaba-ai/ai-alpha-hive/main/scripts/install.sh | sh
+# or from source on any OS: go install github.com/nishgaba-ai/ai-alpha-hive/cmd/hive@latest
+
+hive doctor                     # verify your environment
 
 # prompt → live site
-./hive new marketing "Sunrise Bakery" --intent "Order cakes on WhatsApp"
+hive new marketing "Sunrise Bakery" --intent "Order cakes on WhatsApp"
 cd sunrise-bakery
-hive check                      # all seven gates must pass
+hive check                      # all gates must pass
 hive ship                       # deploy preview to Vercel (VERCEL_TOKEN in .env)
 hive ship --env prod
 ```
+
+A complete, gates-green example lives in [examples/bakery-demo](examples/bakery-demo/).
 
 Requirements: Go ≥ 1.26, Node ≥ 20, git. Everything machine-specific lives in
 environment variables — copy [.env.example](.env.example) to `.env` and fill

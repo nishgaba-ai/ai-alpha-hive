@@ -1,0 +1,15 @@
+site:
+  name: "Bakery Demo"
+  intent: "Get Ahmedabad locals to order celebration cakes on WhatsApp"
+  audience: []
+  journeys:
+    - name: convert
+      steps: ["/", "/#contact"]
+pages:
+  /:
+    intent: "Get Ahmedabad locals to order celebration cakes on WhatsApp"
+    keywords: []
+    sections: [hero, features, cta]
+  /about:
+    intent: "trust: who is behind this"
+    sections: [creator]

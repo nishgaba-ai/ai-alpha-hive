@@ -443,10 +443,11 @@ CONTRIBUTING + module-authoring guide; no step that assumes our infra.
 **Phase 0 — Skeleton (days).** Repo structure above, this plan, docs stubs, CI
 scaffold, plugin skeleton. *Accept: clone → `go build ./...` green.*
 
-**Phase 1 — Golden path (week 1–2).** `hive new/check/ship` + marketing template +
-Vercel driver + gates {types,lint,build,secrets,links,seo} + `hive-launch` +
-`hive-audit` skills. *Accept: prompt in a local Claude Code session → live Vercel
-site < 5 min; re-ship unchanged < 60 s; CI green on 3 OSes.*
+**Phase 1 — Golden path (week 1–2). ✅ DONE 2026-08-20.** `hive new/check/ship` +
+marketing template + Vercel driver + gates {secrets,deps,types,lint,build,test,
+links,seo} + `hive-launch` + `hive-audit` skills + goreleaser releases +
+examples/bakery-demo. Verified with a live Vercel deploy. *Deferred to phase 2:
+content-hash gate caching (the <60 s unchanged re-ship target).*
 
 **Phase 2 — Intent graph (week 3–4).** hive.yaml spec, TS analyzer, graph store,
 `graph impact`, `intent diff`, drift gate, `hive-intent` skill. *Accept: change a
