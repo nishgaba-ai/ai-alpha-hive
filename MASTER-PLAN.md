@@ -333,6 +333,24 @@ driven — v1 websites, then blogs/stores (modules already there), then web apps
 auth+DB (module: `stack/supabase` or our Go backend templates), then custom software.
 The engine doesn't change; the template/module library grows.
 
+**Launch surface:** the framework's public site ships on **nishgaba.com** (already
+live on Vercel), replacing the personal homepage — the product carries the brand.
+It includes an "About the creator" page (Nishchal Gaba) as the default; the
+marketing template ships the same `/about` page so every deployer can put their own
+identity there.
+
+### 5.8 Desktop app (advanced local compute)
+
+Browser sessions can't own heavy local compute (big builds, video render modules,
+large graph analysis). Advanced users get **hive desktop** — Windows/macOS/Linux —
+built with **Wails** (Go-native shell + webview): the Go engine is imported
+directly as a library (same `internal/` packages in this monorepo, zero IPC), the
+UI reuses the product's React components. Surfaces: visual intent-graph explorer,
+gate dashboard with live findings, one-click ship, module manager. The CLI's
+requirement that the engine be a clean importable library (thin cobra wrappers
+only) is what keeps this cheap — hold that line in every phase. Ships as a
+product track after P5 (the CLI already serves local power users until then).
+
 ---
 
 ## 6. Marketing AI & business modules (phase 5+)
@@ -442,6 +460,10 @@ unassisted; GitHub export works.*
 **Phase 6 — Business modules + tracks 3–4 (quarter 2).** ads/meta, trials reports,
 paralympics content vertical, video/ module family, domain reseller API, Stripe+
 Razorpay billing GA.
+
+**Phase 7 — hive desktop.** Wails app over the same engine (see §5.8): graph
+explorer, gate dashboard, one-click ship, module manager; goreleaser ships
+win/mac/linux installers alongside the CLI binaries.
 
 ## 12. Risks
 

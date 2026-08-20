@@ -49,12 +49,18 @@ func newCheckCmd() *cobra.Command {
 			} else {
 				for _, r := range results {
 					status := "pass"
-					if !r.Passed {
+					if r.Skipped {
+						status = "skip"
+					} else if !r.Passed {
 						status = "FAIL"
 					}
 					fmt.Fprintf(out, "  %-4s %s\n", status, r.Gate)
 					for _, f := range r.Findings {
-						fmt.Fprintf(out, "         %s:%d  %s\n", f.File, f.Line, f.Message)
+						loc := f.File
+						if f.Line > 0 {
+							loc = fmt.Sprintf("%s:%d", f.File, f.Line)
+						}
+						fmt.Fprintf(out, "         [%s] %s  %s\n", f.Severity, loc, f.Message)
 						if f.FixHint != "" {
 							fmt.Fprintf(out, "                fix: %s\n", f.FixHint)
 						}

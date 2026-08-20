@@ -5,9 +5,10 @@ gates dispose: Claude (or any agent) does the creative work; `hive` owns
 structure, checks, deployment, and the dependency graph — so "all checks pass"
 is a property of the engine, never of a prompt.
 
-> Status: **early — phase 0 of [MASTER-PLAN.md](MASTER-PLAN.md)**. The CLI
-> core, first gate, and plugin skeleton exist; templates and deploy drivers
-> land in phase 1. The command surface below is stable.
+> Status: **phase 1 of [MASTER-PLAN.md](MASTER-PLAN.md)** — the golden path
+> works: `hive new` scaffolds a gate-passing Next.js site, seven gates run
+> (secrets, deps, types, lint, build, links, seo), and `hive ship` deploys to
+> Vercel with post-deploy verification. Intent graph and modules come next.
 
 ## What it does
 
@@ -31,8 +32,13 @@ git clone https://github.com/nishgaba-ai/ai-alpha-hive
 cd ai-alpha-hive
 go build -o hive ./cmd/hive     # hive.exe on Windows
 ./hive doctor                   # verify your environment
-./hive init --name demo --intent "Get visitors to book a call"
-./hive check
+
+# prompt → live site
+./hive new marketing "Sunrise Bakery" --intent "Order cakes on WhatsApp"
+cd sunrise-bakery
+hive check                      # all seven gates must pass
+hive ship                       # deploy preview to Vercel (VERCEL_TOKEN in .env)
+hive ship --env prod
 ```
 
 Requirements: Go ≥ 1.26, Node ≥ 20, git. Everything machine-specific lives in

@@ -10,18 +10,21 @@ them. Output is JSON (`hive check --json`) with `file:line`, severity, and a
 | Gate | Enforces | Blocking | Status |
 |---|---|---|---|
 | secrets | no credentials/private keys in tracked files | yes | ✅ implemented |
-| types | `tsc --noEmit` clean | yes | phase 1 |
-| lint | eslint (shared config) | yes | phase 1 |
-| build | `next build` succeeds | yes | phase 1 |
-| test | vitest/playwright if present | yes | phase 1 |
-| links | no broken internal links | yes | phase 1 |
-| seo | meta/OG/schema.org/sitemap/robots complete | yes* | phase 1 |
+| deps | node_modules installed for web projects | yes | ✅ implemented |
+| types | `tsc --noEmit` clean | yes | ✅ implemented |
+| lint | eslint clean (errors block, warnings reported) | yes | ✅ implemented |
+| build | `npm run build` succeeds | yes | ✅ implemented |
+| links | internal links resolve to routes or public files | yes | ✅ implemented |
+| seo | metadata+description, robots, sitemap (errors); OG, JSON-LD (warnings) | yes | ✅ implemented |
+| test | vitest/playwright if present | yes | phase 1.x |
 | a11y | axe on built pages | warn→yes | phase 2 |
+| drift | content still serves declared intent/keywords | warn | phase 2 |
 | geo | AI-citability score, llms.txt | warn | phase 4 |
 | perf | Lighthouse budget per template | warn→yes | phase 4 |
-| drift | content still serves declared intent/keywords | warn | phase 2 |
 
-\* blocking on product templates.
+Gates that don't apply to a project (e.g. web gates on a non-web repo, toolchain
+gates before `npm install`) report `skip`, never a false pass. Warnings are
+reported but only `error`-severity findings fail a gate.
 
 ## Escape hatch
 

@@ -17,6 +17,9 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: "1.26"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
       - name: Build
         run: go build ./...
       - name: Vet
@@ -32,3 +35,10 @@ jobs:
           mkdir smoke && cd smoke
           ../hive_bin init --name smoke --intent "CI smoke test"
           ../hive_bin check
+      - name: Golden path (template must pass its own gates)
+        shell: bash
+        run: |
+          cd "$RUNNER_TEMP"
+          "$GITHUB_WORKSPACE/hive_bin" new marketing "CI Golden Path" --intent "Template passes all gates in CI"
+          cd ci-golden-path
+          "$GITHUB_WORKSPACE/hive_bin" check

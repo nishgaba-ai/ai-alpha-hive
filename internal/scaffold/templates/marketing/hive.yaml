@@ -1,0 +1,15 @@
+site:
+  name: "[[.Name]]"
+  intent: "[[.Intent]]"
+  audience: []
+  journeys:
+    - name: convert
+      steps: ["/", "/#contact"]
+pages:
+  /:
+    intent: "[[.Intent]]"
+    keywords: []
+    sections: [hero, features, cta]
+  /about:
+    intent: "trust: who is behind this"
+    sections: [creator]

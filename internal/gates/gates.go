@@ -45,10 +45,16 @@ type Gate interface {
 }
 
 // Registry returns the built-in gates, in reporting order.
-// Phase 1 adds types, lint, build, links, seo; phase 2 adds drift.
+// Phase 2 adds drift; phase 4 adds geo and perf.
 func Registry() []Gate {
 	return []Gate{
 		&SecretsGate{},
+		&DepsGate{},
+		&TypesGate{},
+		&LintGate{},
+		&BuildGate{},
+		&LinksGate{},
+		&SEOGate{},
 	}
 }
 
