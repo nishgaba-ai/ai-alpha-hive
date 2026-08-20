@@ -1,0 +1,20 @@
+site:
+  name: "Nish Alpha Hive"
+  intent: "Get founders and devs to launch their product to production in minutes"
+  audience: ["non-technical founders", "developers", "small teams"]
+  journeys:
+    - name: launch
+      steps: ["/", "/dashboard"]
+    - name: trust
+      steps: ["/", "/founder"]
+pages:
+  /:
+    intent: "convince: production launches in minutes, checks never optional"
+    keywords: [launch website ai, prompt to production, ai deploy platform]
+    sections: [hero, launch-targets, gates, how-it-works]
+  /founder:
+    intent: "trust: who is behind this"
+    sections: [bio, background, links]
+  /dashboard:
+    intent: "operate: products, deployments, infrastructure"
+    sections: [products, deployments, infra]
