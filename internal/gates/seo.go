@@ -12,6 +12,7 @@ type SEOGate struct{}
 
 func (g *SEOGate) Name() string        { return "seo" }
 func (g *SEOGate) Blocking() bool      { return true }
+func (g *SEOGate) Mutates() bool       { return false }
 func (g *SEOGate) Description() string { return "metadata, robots, sitemap, and structured data present" }
 
 func (g *SEOGate) Check(ctx context.Context, dir string) (Result, error) {

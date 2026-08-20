@@ -8,6 +8,7 @@ type DepsGate struct{}
 
 func (g *DepsGate) Name() string        { return "deps" }
 func (g *DepsGate) Blocking() bool      { return true }
+func (g *DepsGate) Mutates() bool       { return false }
 func (g *DepsGate) Description() string { return "node_modules present for web projects" }
 
 func (g *DepsGate) Check(ctx context.Context, dir string) (Result, error) {

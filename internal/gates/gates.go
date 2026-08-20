@@ -40,6 +40,11 @@ type Gate interface {
 	Description() string
 	// Blocking gates fail `hive ship`; non-blocking gates only warn.
 	Blocking() bool
+	// Mutates reports whether the check writes into the project directory
+	// (e.g. `next build` regenerating .next/types). Mutating gates run
+	// serially after the read-only wave so parallel gates never race on
+	// generated files.
+	Mutates() bool
 	// Check inspects the project rooted at dir.
 	Check(ctx context.Context, dir string) (Result, error)
 }

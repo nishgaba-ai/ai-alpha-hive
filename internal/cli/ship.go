@@ -102,9 +102,12 @@ func newShipCmd() *cobra.Command {
 	return cmd
 }
 
-// verifyURL polls the deployed URL until it responds. A 401/403 counts as
-// reachable — Vercel deployment protection gates previews behind SSO.
+// verifyURL polls the deployed URL until it responds. Access protection
+// (Vercel SSO: 401/403, or a redirect off the deployment host to a login
+// page) counts as reachable but is reported so nobody mistakes a gated
+// preview for a public site.
 func verifyURL(ctx context.Context, url string) (bool, string) {
+	const protectedNote = "note: deployment is reachable but access-protected (Vercel SSO) — attach a domain or disable deployment protection for public access"
 	client := &http.Client{Timeout: 15 * time.Second}
 	for attempt := 0; attempt < 5; attempt++ {
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
@@ -113,12 +116,15 @@ func verifyURL(ctx context.Context, url string) (bool, string) {
 		}
 		resp, err := client.Do(req)
 		if err == nil {
+			finalHost := resp.Request.URL.Host
 			resp.Body.Close()
 			switch {
+			case resp.StatusCode < 400 && finalHost != req.URL.Host:
+				return true, protectedNote // bounced to an auth host
 			case resp.StatusCode < 400:
 				return true, ""
 			case resp.StatusCode == 401 || resp.StatusCode == 403:
-				return true, "note: deployment is reachable but access-protected (Vercel SSO) — attach a domain or disable deployment protection for public access"
+				return true, protectedNote
 			}
 		}
 		select {

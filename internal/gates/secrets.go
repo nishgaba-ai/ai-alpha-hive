@@ -15,6 +15,7 @@ type SecretsGate struct{}
 
 func (g *SecretsGate) Name() string        { return "secrets" }
 func (g *SecretsGate) Blocking() bool      { return true }
+func (g *SecretsGate) Mutates() bool       { return false }
 func (g *SecretsGate) Description() string { return "no credentials or private keys in tracked files" }
 
 type secretPattern struct {

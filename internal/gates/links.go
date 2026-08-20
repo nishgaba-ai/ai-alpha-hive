@@ -15,6 +15,7 @@ type LinksGate struct{}
 
 func (g *LinksGate) Name() string        { return "links" }
 func (g *LinksGate) Blocking() bool      { return true }
+func (g *LinksGate) Mutates() bool       { return false }
 func (g *LinksGate) Description() string { return "no broken internal links" }
 
 var hrefRe = regexp.MustCompile(`href=["'](/[^"'#?]*)`)

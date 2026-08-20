@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"regexp"
 	"runtime"
 	"strings"
 )
@@ -54,19 +55,28 @@ func (d *VercelDriver) Deploy(ctx context.Context, dir string, opts Options) (st
 		msg := strings.ReplaceAll(lastLines(stderr.String(), 12), token, "***")
 		return "", fmt.Errorf("vercel deploy failed: %s", msg)
 	}
-	url := lastURL(stdout.String())
+	url := deploymentURL(stdout.String() + "\n" + stderr.String())
 	if url == "" {
 		return "", fmt.Errorf("vercel deploy produced no URL; output: %s", lastLines(stdout.String(), 6))
 	}
 	return url, nil
 }
 
-func lastURL(out string) string {
-	lines := strings.Split(strings.TrimSpace(out), "\n")
-	for i := len(lines) - 1; i >= 0; i-- {
-		l := strings.TrimSpace(lines[i])
-		if strings.HasPrefix(l, "https://") {
-			return l
+var urlRe = regexp.MustCompile(`https://[^\s"',]+`)
+
+// deploymentURL extracts the deployment URL from CLI output, which varies by
+// vercel CLI version (plain lines vs JSON summaries). Deployment URLs live on
+// *.vercel.app; vercel.com URLs are the inspector, never the deployment.
+func deploymentURL(out string) string {
+	urls := urlRe.FindAllString(out, -1)
+	for i := len(urls) - 1; i >= 0; i-- {
+		if strings.Contains(urls[i], ".vercel.app") {
+			return urls[i]
+		}
+	}
+	for i := len(urls) - 1; i >= 0; i-- {
+		if !strings.Contains(urls[i], "vercel.com") {
+			return urls[i]
 		}
 	}
 	return ""

@@ -13,8 +13,12 @@ const maxToolFindings = 20
 // TypesGate runs the TypeScript compiler.
 type TypesGate struct{}
 
-func (g *TypesGate) Name() string        { return "types" }
-func (g *TypesGate) Blocking() bool      { return true }
+func (g *TypesGate) Name() string   { return "types" }
+func (g *TypesGate) Blocking() bool { return true }
+
+// tsc writes .tsbuildinfo (incremental) and reads .next/types, which the
+// build gate regenerates — so types must not run concurrently with build.
+func (g *TypesGate) Mutates() bool { return true }
 func (g *TypesGate) Description() string { return "tsc --noEmit is clean" }
 
 // e.g. app/page.tsx(12,7): error TS2304: Cannot find name 'foo'.
@@ -59,6 +63,7 @@ type LintGate struct{}
 
 func (g *LintGate) Name() string        { return "lint" }
 func (g *LintGate) Blocking() bool      { return true }
+func (g *LintGate) Mutates() bool       { return false }
 func (g *LintGate) Description() string { return "eslint is clean" }
 
 type eslintFile struct {
@@ -134,6 +139,7 @@ type BuildGate struct{}
 
 func (g *BuildGate) Name() string        { return "build" }
 func (g *BuildGate) Blocking() bool      { return true }
+func (g *BuildGate) Mutates() bool       { return true }
 func (g *BuildGate) Description() string { return "production build succeeds" }
 
 func (g *BuildGate) Check(ctx context.Context, dir string) (Result, error) {
