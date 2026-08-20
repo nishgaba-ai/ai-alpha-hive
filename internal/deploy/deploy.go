@@ -5,7 +5,8 @@ import "context"
 
 // Options for a deployment.
 type Options struct {
-	Prod bool // production deployment; otherwise preview
+	Prod      bool   // production deployment; otherwise preview
+	ReleaseID string // timestamped id assigned by ship, used for release dirs/tags
 }
 
 // Driver deploys the project rooted at dir and returns the live URL.
@@ -22,6 +23,8 @@ func ByName(name string) (Driver, bool) {
 	switch name {
 	case "vercel":
 		return &VercelDriver{}, true
+	case "droplet":
+		return &DropletDriver{}, true
 	default:
 		return nil, false
 	}

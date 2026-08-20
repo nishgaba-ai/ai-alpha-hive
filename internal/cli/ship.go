@@ -46,7 +46,7 @@ func newShipCmd() *cobra.Command {
 
 			driver, ok := deploy.ByName(driverName)
 			if !ok {
-				return fmt.Errorf("unknown driver %q (available: vercel)", driverName)
+				return fmt.Errorf("unknown driver %q (available: vercel, droplet)", driverName)
 			}
 			if err := driver.Preflight(); err != nil {
 				return err
@@ -72,8 +72,9 @@ func newShipCmd() *cobra.Command {
 			}
 
 			// 2. Deploy.
+			releaseID := time.Now().UTC().Format("20060102-150405")
 			fmt.Fprintf(out, "deploying via %s (%s)…\n", driver.Name(), env)
-			url, err := driver.Deploy(cmd.Context(), dir, deploy.Options{Prod: env == "prod"})
+			url, err := driver.Deploy(cmd.Context(), dir, deploy.Options{Prod: env == "prod", ReleaseID: releaseID})
 			if err != nil {
 				return err
 			}

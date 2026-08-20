@@ -23,6 +23,7 @@ type Config struct {
 type Site struct {
 	Name     string    `yaml:"name"`
 	Intent   string    `yaml:"intent"`
+	Domain   string    `yaml:"domain,omitempty"` // production domain; drivers use it for vhosts/TLS
 	Audience []string  `yaml:"audience,omitempty"`
 	Journeys []Journey `yaml:"journeys,omitempty"`
 }
