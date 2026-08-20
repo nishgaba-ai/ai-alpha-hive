@@ -41,3 +41,32 @@ resolves the embedded IP, so there is zero DNS setup.
 
 **Rollback**: point the `current` symlink at a previous release and restart
 the container from its image tag (`hive rollback` is planned).
+
+## Isolation model (multi-app boxes)
+
+A droplet may host several apps (and the hive platform itself). The rules
+that keep them from exposing each other:
+
+- every app runs in its own container, published on `127.0.0.1:<port>` only —
+  the sole public path is nginx matching that app's `server_name`;
+- unmatched Host headers, including direct IP hits, are dropped (`return 444`
+  default vhost — provisioned by the script): nothing on the box is
+  discoverable by scanning the IP;
+- app containers get only their own env (`SITE_URL` today, per-app vars
+  later) — never another app's secrets, never host mounts outside their
+  release dir;
+- stateful data lives in per-app docker volumes; apps never share a database.
+
+## Migrating an app to another box (minutes, by design)
+
+1. Provision the new box: `ssh root@<new-ip> bash < scripts/provision-droplet.sh`
+2. Change `DROPLET_HOST` in `.env` to the new IP.
+3. `hive ship --driver droplet` from the project.
+4. Stateless site: done — point DNS (or use the new sslip.io preview).
+   Stateful app: copy its docker volume/SQLite file first
+   (`docker run --rm -v <vol>:/v -v /opt/hive-backups:/b alpine tar czf /b/<vol>.tar.gz -C /v .`,
+   restore on the new box the same way).
+5. Old box: `docker rm -f hive-<slug>` and delete its nginx vhost.
+
+Nothing about an app references its box outside `.env` — that is the whole
+migration surface.

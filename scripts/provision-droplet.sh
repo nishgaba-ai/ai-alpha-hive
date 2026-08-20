@@ -41,9 +41,22 @@ fi
 systemctl enable --now docker
 docker --version
 
-echo "=== [6/7] hive app root ==="
+echo "=== [6/7] hive app root + nginx isolation ==="
 mkdir -p /opt/hive-apps
 mkdir -p /opt/hive-backups
+# Isolation: unmatched Host headers (incl. direct IP hits) are dropped, so
+# apps are reachable ONLY via their own server_name — nothing is discoverable
+# by scanning the IP, and co-hosted systems never leak through the default vhost.
+rm -f /etc/nginx/sites-enabled/default
+cat > /etc/nginx/sites-enabled/000-default-drop.conf <<'NGX'
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    server_name _;
+    return 444;
+}
+NGX
+nginx -t >/dev/null && systemctl reload nginx
 
 echo "=== [7/7] ssh hardening ==="
 sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/' /etc/ssh/sshd_config

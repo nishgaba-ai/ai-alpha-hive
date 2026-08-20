@@ -361,6 +361,16 @@ managed path uses (vercel today; droplet next; more via the driver interface), s
 leaving the managed tier is always possible — the anti-lock-in guarantee that
 also makes "connect GitHub" credible.
 
+**Shared-box exception (2026-08-20):** normally customers bring infra or we
+launch for them on metered cost. As a marked exception, `alpha-hive-core`
+serves BOTH the hive platform backend and the nishgaba.com site. Conditions:
+the site must remain migratable to any other box in minutes (it is — the only
+box reference an app has is `DROPLET_HOST` in `.env`; runbook in
+docs/deploy.md), and co-hosting must expose nothing: per-app containers on
+localhost ports, nginx server_name-only routing, unmatched hosts dropped
+(444), no shared env/volumes/DB. The platform backend may later move to its
+own box — that's the same runbook.
+
 **Launch surface:** the framework's public site ships on **nishgaba.com** (already
 live on Vercel), replacing the personal homepage — the product carries the brand.
 It includes an "About the creator" page (Nishchal Gaba) as the default; the
