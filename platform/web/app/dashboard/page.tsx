@@ -7,31 +7,45 @@ export const metadata: Metadata = {
   robots: { index: false },
 };
 
+const stats = [
+  { label: "Products", value: "3", hint: "2 live · 1 preview" },
+  { label: "Releases today", value: "4", hint: "all gates green" },
+  { label: "Infrastructure", value: "3/3", hint: "targets healthy" },
+  { label: "Modules", value: String(registry.length), hint: "one line each" },
+];
+
 export default function Dashboard() {
   return (
-    <main className="mx-auto max-w-6xl px-6 py-12">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="mt-2 text-sm text-[var(--muted)]">
-            Demo preview — sign-in arrives with the RBAC module (email,
-            phone, 2FA presets). Every panel below is a self-contained module.
-          </p>
-        </div>
-        <p className="font-mono text-xs text-[var(--muted)]">
-          {registry.length} modules loaded
-        </p>
+    <main className="mx-auto max-w-6xl px-6 py-10">
+      <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+
+      <div className="mt-6 grid gap-4 sm:grid-cols-4">
+        {stats.map((s) => (
+          <div
+            key={s.label}
+            className="rounded-lg border border-[var(--line)] bg-[var(--panel)] px-4 py-3"
+          >
+            <p className="font-mono text-[11px] uppercase tracking-wider text-[var(--muted)]">
+              {s.label}
+            </p>
+            <p className="mt-1 text-2xl font-semibold tabular-nums">{s.value}</p>
+            <p className="text-xs text-[var(--muted)]">{s.hint}</p>
+          </div>
+        ))}
       </div>
 
-      <div className="mt-8 grid gap-5 lg:grid-cols-3">
+      <div className="mt-8 grid gap-5 lg:grid-cols-2">
         {registry.map((m) => (
           <section
             key={m.id}
             className="rounded-lg border border-[var(--line)] bg-[var(--panel)] p-5"
           >
             <div className="mb-4 flex items-baseline justify-between">
-              <h2 className="font-semibold">{m.title}</h2>
-              <span className="font-mono text-[11px] text-[var(--muted)]">
+              <div>
+                <h2 className="font-semibold">{m.title}</h2>
+                <p className="mt-0.5 text-xs text-[var(--muted)]">{m.description}</p>
+              </div>
+              <span className="ml-4 shrink-0 font-mono text-[11px] text-[var(--muted)]">
                 {m.id}@{m.version}
               </span>
             </div>
@@ -41,13 +55,13 @@ export default function Dashboard() {
       </div>
 
       <p className="mt-8 rounded-lg border border-[var(--line)] bg-[var(--panel)] p-4 text-sm text-[var(--muted)]">
-        How this is modular: each panel lives in{" "}
-        <code className="text-[var(--brand)]">modules/&lt;name&gt;/</code> with
-        its own manifest and UI, and the dashboard renders whatever{" "}
-        <code className="text-[var(--brand)]">modules/registry.ts</code> lists —
-        one line to add or remove a capability. The engine&apos;s{" "}
-        <code className="text-[var(--brand)]">hive add</code> will inject
-        registry entries the same way (payments, CMS, analytics, referrals).
+        Every panel is a self-contained module under{" "}
+        <code className="text-[var(--brand)]">modules/&lt;name&gt;/</code>,
+        rendered from{" "}
+        <code className="text-[var(--brand)]">modules/registry.ts</code> — one
+        line to add or remove a capability. Access &amp; Identity arrived
+        exactly that way, and each module follows a public design-architecture
+        spec before it ships.
       </p>
     </main>
   );

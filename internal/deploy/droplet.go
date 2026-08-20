@@ -113,9 +113,13 @@ func (d *DropletDriver) Deploy(ctx context.Context, dir string, opts Options) (s
 }
 
 func (d *DropletDriver) upload(ctx context.Context, dir, release string) error {
+	// .env.deploy is the ONE env file that ships — it holds the app's own
+	// runtime config (injected via --env-file). Local/dev env files never do.
 	tarCmd := exec.CommandContext(ctx, "tar", "czf", "-",
 		"--exclude=node_modules", "--exclude=.next", "--exclude=.git",
-		"--exclude=.hive", "--exclude=.env", "--exclude=.env.*", "--exclude=.vercel",
+		"--exclude=.hive", "--exclude=.env", "--exclude=.env.local",
+		"--exclude=.env.development", "--exclude=.env.production",
+		"--exclude=.env.test", "--exclude=.vercel",
 		"-C", dir, ".")
 	sshCmd := exec.CommandContext(ctx, "ssh", sshArgs("mkdir -p "+release+" && tar xzf - -C "+release)...)
 
@@ -170,9 +174,12 @@ if [ -f "$APP/PORT" ]; then PORT=$(cat "$APP/PORT"); else
   echo "$PORT" > "$APP/PORT"
 fi
 
-# public URL decided before start so the app can know its own address
-if [ -n "$DOMAIN" ]; then PUBLIC_URL="https://$DOMAIN"; SERVER_NAME="$DOMAIN"
-else SERVER_NAME="$SLUG.$HOST.sslip.io"; PUBLIC_URL="http://$SERVER_NAME"; fi
+# public URL decided before start so the app can know its own address.
+# The sslip preview name stays in server_name even with a domain, so the
+# app remains reachable while DNS cuts over.
+SSLIP="$SLUG.$HOST.sslip.io"
+if [ -n "$DOMAIN" ]; then PUBLIC_URL="https://$DOMAIN"; SERVER_NAME="$DOMAIN $SSLIP"
+else SERVER_NAME="$SSLIP"; PUBLIC_URL="http://$SSLIP"; fi
 
 # default Dockerfile for npm apps that don't ship their own
 if [ ! -f Dockerfile ]; then
@@ -192,7 +199,9 @@ fi
 echo "building image hive-$SLUG:$TS ..."
 docker build -q -t "hive-$SLUG:$TS" .
 docker rm -f "hive-$SLUG" >/dev/null 2>&1 || true
-docker run -d --name "hive-$SLUG" --restart unless-stopped \
+ENVFILE=""
+[ -f "$REL/.env.deploy" ] && ENVFILE="--env-file $REL/.env.deploy" && chmod 600 "$REL/.env.deploy"
+docker run -d --name "hive-$SLUG" --restart unless-stopped $ENVFILE \
   -p "127.0.0.1:$PORT:3000" -e "SITE_URL=$PUBLIC_URL" "hive-$SLUG:$TS" >/dev/null
 
 echo "waiting for app on :$PORT ..."

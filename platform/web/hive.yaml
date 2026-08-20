@@ -1,6 +1,7 @@
 site:
   name: "Nish Alpha Hive"
   intent: "Get founders and devs to launch their product to production in minutes"
+  domain: nishgaba.com
   audience: ["non-technical founders", "developers", "small teams"]
   journeys:
     - name: launch
