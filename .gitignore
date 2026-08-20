@@ -1,0 +1,18 @@
+# credentials & local state — the portability contract lives in .env.example
+.env
+.env.*
+!.env.example
+.hive/
+
+# build output
+/hive
+/hive.exe
+dist/
+node_modules/
+.next/
+coverage/
+
+# editor / OS noise
+.DS_Store
+Thumbs.db
+*.swp
