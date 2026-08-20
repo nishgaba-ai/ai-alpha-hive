@@ -275,7 +275,18 @@ can host their own (git URL install).
 
 **v1 module targets** (chosen from what we already build repeatedly): cms/core,
 integrations/{linkedin, postmark, do-spaces, ga4, google-search-console},
-payments/{razorpay, stripe}, seo/og-images, ads/meta (phase 5).
+payments/{razorpay, stripe}, seo/og-images, ads/meta (phase 5), and
+**systems/{rbac, ecom, credits, referrals}** — the business systems every project
+rebuilds and where RBAC is always forgotten. `systems/rbac` is foundational:
+modules adding authenticated/mutating routes must depend on it and annotate each
+route's required role (registry lint enforces this).
+
+**Versioning & compatibility (spec'd in docs/module-spec.md):** semver enforced by
+manifest-surface diffing, mandatory per-module CHANGELOG, `hive.lock` in consumer
+projects (module+version+content-hash), `hive module update` with changelog delta
+and `--allow-major` guard, engine range via `requires.hive`, and an append-only
+`.hive/journal.jsonl` audit trail of every module add/update/remove alongside the
+`.hive/releases/` deploy records.
 
 ### 5.6 CMS + SEO/GEO engine
 
