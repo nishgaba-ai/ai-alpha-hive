@@ -234,10 +234,11 @@ nginx -t >/dev/null && systemctl reload nginx
 
 if [ -n "$DOMAIN" ] && [ -n "$EMAIL" ]; then
   # apex + www together; if www DNS isn't ready yet, fall back to apex only
-  if [ -n "$WWW" ] && certbot --nginx -d "$DOMAIN" -d "$WWW" -m "$EMAIL" --agree-tos -n --redirect >/tmp/certbot.log 2>&1; then
+  # --expand lets an existing apex-only cert grow to include www on a later ship
+  if [ -n "$WWW" ] && certbot --nginx -d "$DOMAIN" -d "$WWW" -m "$EMAIL" --agree-tos -n --redirect --expand >/tmp/certbot-www.log 2>&1; then
     echo "tls: $DOMAIN + $WWW"
-  elif certbot --nginx -d "$DOMAIN" -m "$EMAIL" --agree-tos -n --redirect >/tmp/certbot.log 2>&1; then
-    echo "tls: $DOMAIN (www pending DNS)"
+  elif certbot --nginx -d "$DOMAIN" -m "$EMAIL" --agree-tos -n --redirect --expand >/tmp/certbot.log 2>&1; then
+    echo "tls: $DOMAIN (www pending DNS)"; [ -n "$WWW" ] && tail -3 /tmp/certbot-www.log
   else
     echo "certbot failed (DNS not pointed yet?) — serving HTTP until it is"; tail -5 /tmp/certbot.log
   fi
