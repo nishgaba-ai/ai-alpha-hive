@@ -178,7 +178,11 @@ fi
 # The sslip preview name stays in server_name even with a domain, so the
 # app remains reachable while DNS cuts over.
 SSLIP="$SLUG.$HOST.sslip.io"
-if [ -n "$DOMAIN" ]; then PUBLIC_URL="https://$DOMAIN"; SERVER_NAME="$DOMAIN $SSLIP"
+WWW=""
+if [ -n "$DOMAIN" ]; then
+  PUBLIC_URL="https://$DOMAIN"
+  case "$DOMAIN" in www.*) ;; *) WWW="www.$DOMAIN" ;; esac
+  SERVER_NAME="$DOMAIN $WWW $SSLIP"
 else SERVER_NAME="$SSLIP"; PUBLIC_URL="http://$SSLIP"; fi
 
 # default Dockerfile for npm apps that don't ship their own
@@ -227,7 +231,14 @@ CONF
 nginx -t >/dev/null && systemctl reload nginx
 
 if [ -n "$DOMAIN" ] && [ -n "$EMAIL" ]; then
-  certbot --nginx -d "$DOMAIN" -m "$EMAIL" --agree-tos -n --redirect || echo "certbot failed (DNS not pointed yet?) — serving HTTP until it is"
+  # apex + www together; if www DNS isn't ready yet, fall back to apex only
+  if [ -n "$WWW" ] && certbot --nginx -d "$DOMAIN" -d "$WWW" -m "$EMAIL" --agree-tos -n --redirect >/tmp/certbot.log 2>&1; then
+    echo "tls: $DOMAIN + $WWW"
+  elif certbot --nginx -d "$DOMAIN" -m "$EMAIL" --agree-tos -n --redirect >/tmp/certbot.log 2>&1; then
+    echo "tls: $DOMAIN (www pending DNS)"
+  else
+    echo "certbot failed (DNS not pointed yet?) — serving HTTP until it is"; tail -5 /tmp/certbot.log
+  fi
 fi
 
 ln -sfn "$REL" "$APP/current"

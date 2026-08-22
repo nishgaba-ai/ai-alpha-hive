@@ -35,7 +35,9 @@ stable per-app port → nginx vhost → atomic `current` symlink flip → old
 releases pruned (last 3 kept).
 
 **URLs**: declare `site.domain` in `hive.yaml` to serve on your domain
-(TLS via certbot once DNS points at the box). Without a domain you get an
+(TLS via certbot once DNS points at the box; `www.` is served and
+certified automatically when its DNS follows the apex — point a CNAME
+`www` → your apex — and falls back to apex-only until then). Without a domain you get an
 instant public preview at `http://<slug>.<host-ip>.sslip.io` — sslip.io
 resolves the embedded IP, so there is zero DNS setup.
 
