@@ -205,7 +205,9 @@ docker build -q -t "hive-$SLUG:$TS" .
 docker rm -f "hive-$SLUG" >/dev/null 2>&1 || true
 ENVFILE=""
 [ -f "$REL/.env.deploy" ] && ENVFILE="--env-file $REL/.env.deploy" && chmod 600 "$REL/.env.deploy"
+# every app gets a persistent per-app volume at /data (SQLite, uploads…)
 docker run -d --name "hive-$SLUG" --restart unless-stopped $ENVFILE \
+  -v "hive-$SLUG-data:/data" -e "DATA_DIR=/data" \
   -p "127.0.0.1:$PORT:3000" -e "SITE_URL=$PUBLIC_URL" "hive-$SLUG:$TS" >/dev/null
 
 echo "waiting for app on :$PORT ..."

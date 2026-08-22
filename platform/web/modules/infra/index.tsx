@@ -1,8 +1,8 @@
 import type { DashboardModule } from "../types";
 
 const connections = [
-  { name: "alpha-hive-core", kind: "droplet · BLR1", status: "healthy" },
-  { name: "Vercel (prodigal-ai)", kind: "vercel", status: "connected" },
+  { name: "alpha-hive-core", kind: "droplet · BLR1 · managed target", status: "healthy" },
+  { name: "Vercel (prodigal-ai)", kind: "vercel driver", status: "connected" },
   { name: "GitHub (nishgaba-ai)", kind: "git remote", status: "connected" },
 ];
 
@@ -29,7 +29,7 @@ const mod: DashboardModule = {
   id: "infra",
   version: "0.1.0",
   title: "Infrastructure",
-  description: "Connected launch targets — yours, ours, or local.",
+  description: "Connected launch targets — yours, ours, or local. Per-workspace connections arrive in Stage C.",
   Panel,
 };
 

@@ -9,3 +9,6 @@ out/
 .hive/
 *.tsbuildinfo
 next-env.d.ts
+
+# sqlite data (DATA_DIR volume in production)
+data/

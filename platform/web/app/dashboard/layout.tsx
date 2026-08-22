@@ -16,10 +16,10 @@ export default async function DashboardLayout({
       <div className="border-y border-[var(--line)] bg-[var(--panel)]">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-2.5 text-sm">
           <span className="text-[var(--muted)]">
-            Signed in as <span className="text-[var(--ink)]">{session.email}</span>
-            <span className="ml-3 font-mono text-[11px] text-[var(--brand)]">
-              rbac@bootstrap
-            </span>
+            <span className="text-[var(--ink)]">{session.email}</span>
+            <span className="mx-2">·</span>
+            {session.orgName}
+            <span className="ml-2 font-mono text-[11px] text-[var(--brand)]">{session.role}</span>
           </span>
           <form action={logout}>
             <button
