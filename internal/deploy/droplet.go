@@ -68,6 +68,8 @@ func appRoot() string {
 var (
 	slugRe   = regexp.MustCompile(`^[a-z0-9-]+$`)
 	domainRe = regexp.MustCompile(`^[a-zA-Z0-9.-]+$`)
+	emailRe  = regexp.MustCompile(`^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+$`)
+	pathRe   = regexp.MustCompile(`^[A-Za-z0-9._/-]+$`)
 )
 
 func (d *DropletDriver) Deploy(ctx context.Context, dir string, opts Options) (string, error) {
@@ -96,10 +98,23 @@ func (d *DropletDriver) Deploy(ctx context.Context, dir string, opts Options) (s
 	}
 
 	// 2. Build, run, wire nginx, flip the symlink — one remote script.
-	script := remoteDeployScript
-	cmd := exec.CommandContext(ctx, "ssh", sshArgs("bash -s --", appRoot(), slug, ts,
-		"'"+domain+"'", "'"+os.Getenv("CERTBOT_EMAIL")+"'", os.Getenv("DROPLET_HOST"))...)
-	cmd.Stdin = strings.NewReader(script)
+	// Values are embedded as a validated variable header instead of ssh
+	// positional args: empty args don't survive Windows→ssh quoting.
+	email := os.Getenv("CERTBOT_EMAIL")
+	if email != "" && !emailRe.MatchString(email) {
+		return "", fmt.Errorf("invalid CERTBOT_EMAIL")
+	}
+	host := os.Getenv("DROPLET_HOST")
+	if !domainRe.MatchString(host) {
+		return "", fmt.Errorf("invalid DROPLET_HOST")
+	}
+	if !pathRe.MatchString(appRoot()) {
+		return "", fmt.Errorf("invalid DROPLET_APP_ROOT")
+	}
+	header := fmt.Sprintf("APP_ROOT=%q\nSLUG=%q\nTS=%q\nDOMAIN=%q\nEMAIL=%q\nHOST=%q\n",
+		appRoot(), slug, ts, domain, email, host)
+	cmd := exec.CommandContext(ctx, "ssh", sshArgs("bash -s")...)
+	cmd.Stdin = strings.NewReader(header + remoteDeployScript)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return "", fmt.Errorf("remote deploy failed:\n%s", lastLines(string(out), 25))
@@ -157,13 +172,10 @@ func slugify(name string) string {
 	return strings.Trim(s, "-")
 }
 
-// remoteDeployScript runs on the droplet. Args:
-//
-//	$1 app root   $2 slug   $3 release ts   $4 domain (may be '')
-//	$5 certbot email (may be '')   $6 host (for sslip.io preview URLs)
+// remoteDeployScript runs on the droplet after a variable header defining
+// APP_ROOT, SLUG, TS, DOMAIN, EMAIL, HOST (all validated client-side).
 const remoteDeployScript = `
 set -eu
-APP_ROOT=$1; SLUG=$2; TS=$3; DOMAIN=${4#\'}; DOMAIN=${DOMAIN%\'}; EMAIL=${5#\'}; EMAIL=${EMAIL%\'}; HOST=$6
 APP="$APP_ROOT/$SLUG"; REL="$APP/releases/$TS"
 cd "$REL"
 
