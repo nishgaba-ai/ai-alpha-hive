@@ -49,7 +49,7 @@ roles:
   - id: cmo
     title: Chief Marketing Officer
     harness: api
-    model: mock
+    model: anthropic/claude-fable-5-1
     effort: xhigh
     reports_to: board
     tools: [task.*, agent.list, message.*, web.*, content.*, blog.*, linkedin.*, ads-meta.*, ga4.*, search-console.*, creators.list, creators.stats, wallet.read, card.request, report.weekly, artifact.save, telegram.notify]
@@ -59,7 +59,7 @@ roles:
   - id: strategist
     title: Brand & Content Strategist
     harness: api
-    model: mock
+    model: anthropic/claude-opus-5
     effort: high
     reports_to: cmo
     tools: [task.update, task.list, message.*, web.*, content:draft, artifact.save]
@@ -69,7 +69,7 @@ roles:
   - id: seo
     title: SEO Specialist
     harness: api
-    model: mock
+    model: anthropic/claude-opus-5
     effort: high
     reports_to: cmo
     tools: [task.update, task.list, message.*, web.*, search-console.*, ga4.*, content:draft, blog.*, artifact.save]
@@ -79,7 +79,7 @@ roles:
   - id: geo
     title: GEO Specialist
     harness: api
-    model: mock
+    model: anthropic/claude-sonnet-5
     effort: medium
     reports_to: cmo
     tools: [task.update, task.list, message.*, web.*, geo.*, content:draft, artifact.save]
@@ -89,7 +89,7 @@ roles:
   - id: social
     title: Social Conversations
     harness: api
-    model: mock
+    model: anthropic/claude-opus-5
     effort: high
     reports_to: cmo
     tools: [task.update, task.list, message.*, web.*, reddit.*, x.*, linkedin.*, instagram.*, postiz.*, blog:read, content.*, artifact.save]
@@ -99,7 +99,7 @@ roles:
   - id: writer
     title: Content Writer
     harness: api
-    model: mock
+    model: anthropic/claude-opus-5
     effort: high
     reports_to: cmo
     tools: [task.update, task.list, message.*, web.*, content:draft, artifact.save]
@@ -110,7 +110,7 @@ roles:
   - id: paid-media
     title: Paid Media Manager
     harness: api
-    model: mock
+    model: anthropic/claude-opus-5
     effort: high
     reports_to: cmo
     tools: [task.update, task.list, message.*, ads-meta.*, ga4.*, wallet.read, card.purchase, card.transactions, artifact.save]
@@ -122,7 +122,7 @@ roles:
   - id: creator-ops
     title: Creator & Influencer Ops
     harness: api
-    model: mock
+    model: anthropic/claude-sonnet-5
     effort: medium
     reports_to: cmo
     tools: [task.update, task.list, message.*, web.*, email.*, creators.*, artifact.save]
@@ -132,7 +132,7 @@ roles:
   - id: analyst
     title: Marketing Analyst
     harness: api
-    model: mock
+    model: anthropic/claude-sonnet-5
     effort: medium
     reports_to: cmo
     tools: [task.update, task.list, message.*, ga4.*, search-console.*, ads-meta.insights, linkedin.analytics, creators.stats, wallet.read, card.transactions, report.weekly, artifact.save]
