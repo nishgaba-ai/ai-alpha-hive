@@ -1,0 +1,194 @@
+# Company template: cmo
+# "AI CMO" as a company (the Okara v2 shape, done with a board in charge):
+# drop in a website → a strategist writes the brand, design and content
+# strategy → parallel roles run SEO, GEO (how AI assistants describe you),
+# social conversations on LinkedIn/Reddit/X, paid media, content, and an
+# influencer/creator programme on commission → an analyst closes the week.
+# Everything public parks for the board; paid media is gated twice.
+
+company:
+  name: "Replace Me Marketing"
+  slug: replace-me-marketing
+  mission: "Replace this with the growth outcome, e.g. 500 qualified sign-ups by 30 November at under ₹200 each, starting from https://example.com"
+  currency: INR
+  board:
+    - email: you@example.com
+      role: owner
+  concurrency: 5
+
+providers:
+  default: anthropic
+  ollama:
+    kind: openai-compatible
+    base_url: http://localhost:11434/v1
+  openrouter:
+    kind: openai-compatible
+    base_url: https://openrouter.ai/api/v1
+    api_key: env:OPENROUTER_API_KEY
+
+treasury:
+  monthly_cap: 100000
+  approval_threshold: 5000
+  reserve: 10000
+  card_provider: none          # flip to stripe-issuing when available for the entity
+
+policies:
+  spend:
+    under_threshold: allow
+    otherwise: approve
+    strict: true
+    merchants:
+      allow: [ads.meta.com, ads.google.com, linkedin.com, canva.com, capcut.com]
+  send:    { first_contact: approve, reply: allow }
+  publish: { default: approve }
+  deploy:  { preview: allow, prod: approve }
+  hire:    { default: approve }
+  quiet_hours: { tz: Asia/Kolkata, from: "21:00", to: "09:00", block: [send, publish] }
+
+roles:
+  - id: cmo
+    title: Chief Marketing Officer
+    harness: api
+    model: anthropic/claude-fable-5-1
+    effort: xhigh
+    reports_to: board
+    tools: [task.*, agent.list, message.*, web.*, content.*, blog.*, linkedin.*, ads-meta.*, ga4.*, search-console.*, creators.list, creators.stats, wallet.read, card.request, report.weekly, artifact.save, telegram.notify]
+    budget: { monthly: 5000, per_tx: 2000 }
+    prompt: roles/cmo.md
+
+  - id: strategist
+    title: Brand & Content Strategist
+    harness: api
+    model: anthropic/claude-opus-5
+    effort: high
+    reports_to: cmo
+    tools: [task.update, task.list, message.*, web.*, content:draft, artifact.save]
+    budget: { monthly: 3000 }
+    prompt: roles/strategist.md
+
+  - id: seo
+    title: SEO Specialist
+    harness: api
+    model: anthropic/claude-opus-5
+    effort: high
+    reports_to: cmo
+    tools: [task.update, task.list, message.*, web.*, search-console.*, ga4.*, content:draft, blog.*, artifact.save]
+    budget: { monthly: 3000 }
+    prompt: roles/seo.md
+
+  - id: geo
+    title: GEO Specialist
+    harness: api
+    model: anthropic/claude-sonnet-5
+    effort: medium
+    reports_to: cmo
+    tools: [task.update, task.list, message.*, web.*, geo.*, content:draft, artifact.save]
+    budget: { monthly: 2000 }
+    prompt: roles/geo.md
+
+  - id: social
+    title: Social Conversations
+    harness: api
+    model: anthropic/claude-opus-5
+    effort: high
+    reports_to: cmo
+    tools: [task.update, task.list, message.*, web.*, reddit.*, x.*, linkedin.*, instagram.*, postiz.*, blog:read, content.*, artifact.save]
+    budget: { monthly: 6000 }
+    prompt: roles/social.md
+
+  - id: writer
+    title: Content Writer
+    harness: api
+    model: anthropic/claude-opus-5
+    effort: high
+    reports_to: cmo
+    tools: [task.update, task.list, message.*, web.*, content:draft, artifact.save]
+    budget: { monthly: 3000 }
+    count: 2
+    prompt: roles/writer.md
+
+  - id: paid-media
+    title: Paid Media Manager
+    harness: api
+    model: anthropic/claude-opus-5
+    effort: high
+    reports_to: cmo
+    tools: [task.update, task.list, message.*, ads-meta.*, ga4.*, wallet.read, card.purchase, card.transactions, artifact.save]
+    budget: { monthly: 55000, per_tx: 5000 }
+    card: { allowed_categories: [advertising_services] }
+    escalate: { on: [spend.denied], to: cmo }
+    prompt: roles/paid-media.md
+
+  - id: creator-ops
+    title: Creator & Influencer Ops
+    harness: api
+    model: anthropic/claude-sonnet-5
+    effort: medium
+    reports_to: cmo
+    tools: [task.update, task.list, message.*, web.*, email.*, creators.*, artifact.save]
+    budget: { monthly: 4000 }
+    prompt: roles/creator-ops.md
+
+  - id: analyst
+    title: Marketing Analyst
+    harness: api
+    model: anthropic/claude-sonnet-5
+    effort: medium
+    reports_to: cmo
+    tools: [task.update, task.list, message.*, ga4.*, search-console.*, ads-meta.insights, linkedin.analytics, creators.stats, wallet.read, card.transactions, report.weekly, artifact.save]
+    budget: { monthly: 1500 }
+    prompt: roles/analyst.md
+
+automations:
+  - id: weekly-post
+    every: 1w
+    at: "09:00"
+    mission: "Publish one blog post on the pillar topic with the weakest coverage, then announce it on LinkedIn and Instagram"
+  - id: daily-conversations
+    every: 1d
+    at: "10:00"
+    mission: "Find five conversations on Reddit and X where the product is the honest answer and draft replies for approval"
+
+teams:
+  - id: strategy
+    lead: cmo
+    members: [strategist, analyst]
+  - id: organic
+    lead: seo
+    members: [seo, geo, writer]
+  - id: conversations
+    lead: social
+    members: [social, creator-ops]
+  - id: performance
+    lead: paid-media
+    members: [paid-media]
+
+integrations:
+  - id: content
+    modes: [draft, publish]
+  - id: blog
+    modes: [read, publish]
+  - id: email
+    modes: [send, read]
+  - id: linkedin
+    modes: [read, publish]
+  - id: instagram
+    modes: [read, publish]
+  - id: postiz
+    modes: [read, publish]
+  - id: reddit
+    modes: [read, engage]
+  - id: x
+    modes: [read, publish]
+  - id: geo
+    modes: [read]
+  - id: ga4
+    modes: [read]
+  - id: search-console
+    modes: [read]
+  - id: ads-meta
+    modes: [read, manage, launch]
+  - id: creators
+    modes: [manage, payout]
+  - id: telegram
+    modes: [notify]

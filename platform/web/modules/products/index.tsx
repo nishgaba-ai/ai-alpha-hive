@@ -1,7 +1,7 @@
 import type { DashboardModule, ModuleContext } from "../types";
 import { getDb } from "../../lib/db";
 import { can } from "../../lib/rbac";
-import { createProduct, deleteProduct } from "../../app/dashboard/products/actions";
+import { createProduct, deleteProduct } from "../../app/(site)/dashboard/products/actions";
 
 type ProductRow = {
   id: string;

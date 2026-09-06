@@ -1,0 +1,253 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/nishgaba-ai/ai-alpha-hive/runtime/company.schema.json",
+  "title": "company.yaml",
+  "type": "object",
+  "required": ["company", "treasury", "policies", "roles"],
+  "additionalProperties": false,
+  "properties": {
+    "company": {
+      "type": "object",
+      "required": ["name", "slug", "mission", "currency", "board"],
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "slug": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
+        "mission": { "type": "string", "minLength": 10 },
+        "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+        "board": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["email", "role"],
+            "additionalProperties": false,
+            "properties": {
+              "email": { "type": "string", "format": "email" },
+              "role": { "type": "string", "enum": ["owner", "admin"] }
+            }
+          }
+        },
+        "workspace": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "repo": { "type": "string" },
+            "hive_project": { "type": "string" },
+            "path": { "type": "string", "description": "Local checkout for agent-sdk roles; default <company dir>/workspace" }
+          }
+        },
+        "concurrency": { "type": "integer", "minimum": 1, "maximum": 32, "default": 4 }
+      }
+    },
+    "treasury": {
+      "type": "object",
+      "required": ["monthly_cap", "approval_threshold"],
+      "additionalProperties": false,
+      "properties": {
+        "monthly_cap": { "type": "integer", "minimum": 0, "description": "Whole currency units" },
+        "approval_threshold": { "type": "integer", "minimum": 0 },
+        "reserve": { "type": "integer", "minimum": 0, "default": 0 },
+        "card_provider": { "type": "string", "enum": ["none", "stripe-issuing"], "default": "none" }
+      }
+    },
+    "policies": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "spend": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "under_threshold": { "$ref": "#/$defs/decision" },
+            "otherwise": { "$ref": "#/$defs/decision" },
+            "strict": { "type": "boolean", "default": false },
+            "merchants": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "allow": { "type": "array", "items": { "type": "string" } },
+                "block": { "type": "array", "items": { "type": "string" } }
+              }
+            }
+          }
+        },
+        "send": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "first_contact": { "$ref": "#/$defs/decision" },
+            "reply": { "$ref": "#/$defs/decision" }
+          }
+        },
+        "publish": { "type": "object", "additionalProperties": false, "properties": { "default": { "$ref": "#/$defs/decision" } } },
+        "deploy": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "preview": { "$ref": "#/$defs/decision" },
+            "prod": { "$ref": "#/$defs/decision" }
+          }
+        },
+        "hire": { "type": "object", "additionalProperties": false, "properties": { "default": { "$ref": "#/$defs/decision" } } },
+        "quiet_hours": {
+          "type": "object",
+          "required": ["tz", "from", "to", "block"],
+          "additionalProperties": false,
+          "properties": {
+            "tz": { "type": "string" },
+            "from": { "type": "string", "pattern": "^\\d{2}:\\d{2}$" },
+            "to": { "type": "string", "pattern": "^\\d{2}:\\d{2}$" },
+            "block": { "type": "array", "items": { "$ref": "#/$defs/sideEffect" } }
+          }
+        }
+      }
+    },
+    "providers": {
+      "type": "object",
+      "description": "Model backends. Keys are provider names referenced by roles as <provider>/<model>. anthropic, claude-code and mock exist implicitly.",
+      "properties": {
+        "default": { "type": "string" }
+      },
+      "additionalProperties": {
+        "type": "object",
+        "required": ["kind"],
+        "additionalProperties": false,
+        "properties": {
+          "kind": { "type": "string", "enum": ["anthropic", "openai-compatible", "claude-code", "mock"] },
+          "base_url": { "type": "string" },
+          "api_key": { "type": "string", "pattern": "^(env|vault):[A-Z][A-Z0-9_]*$", "description": "env:NAME or vault:NAME — never a literal" },
+          "headers": { "type": "object", "additionalProperties": { "type": "string" } }
+        }
+      }
+    },
+    "roles": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "title", "harness", "reports_to", "tools", "budget"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z][a-z0-9_-]*$" },
+          "title": { "type": "string" },
+          "harness": { "type": "string", "enum": ["api", "agent-sdk"] },
+          "model": {
+            "type": "string",
+            "description": "anthropic/claude-opus-5 · openrouter/<vendor>/<model> · ollama/<model> · claude-code · mock. A bare claude-* id means anthropic."
+          },
+          "effort": { "type": "string", "enum": ["low", "medium", "high", "xhigh", "max"], "default": "high" },
+          "reports_to": { "type": "string" },
+          "tools": {
+            "type": "array",
+            "items": { "type": "string", "pattern": "^[a-z][a-z0-9-]*((\\.[a-z][a-z0-9_-]*|\\.\\*)+|:[a-z][a-z0-9_-]*)$" }
+          },
+          "budget": {
+            "type": "object",
+            "required": ["monthly"],
+            "additionalProperties": false,
+            "properties": {
+              "monthly": { "type": "integer", "minimum": 0 },
+              "per_tx": { "type": "integer", "minimum": 0 },
+              "rollover": { "type": "boolean", "default": true }
+            }
+          },
+          "card": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": { "allowed_categories": { "type": "array", "items": { "type": "string" } } }
+          },
+          "prompt": { "type": "string" },
+          "workspace": { "type": "boolean", "default": false },
+          "count": { "type": "integer", "minimum": 1, "maximum": 20, "default": 1 },
+          "escalate": {
+            "type": "object",
+            "required": ["on", "to"],
+            "additionalProperties": false,
+            "properties": { "on": { "type": "array", "items": { "type": "string" } }, "to": { "type": "string" } }
+          },
+          "policies": { "$ref": "#/properties/policies" }
+        }
+      }
+    },
+    "teams": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "lead", "members"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string" },
+          "lead": { "type": "string" },
+          "members": { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+        }
+      }
+    },
+    "automations": {
+      "type": "array",
+      "description": "Recurring missions. every: 1h | 6h | 1d | 1w, optional at HH:mm (company quiet-hours tz).",
+      "items": {
+        "type": "object",
+        "required": ["id", "every", "mission"],
+        "additionalProperties": false,
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+          "every": { "type": "string", "pattern": "^\\d+(h|d|w)$" },
+          "at": { "type": "string", "pattern": "^\\d{2}:\\d{2}$" },
+          "mission": { "type": "string", "minLength": 10 },
+          "enabled": { "type": "boolean", "default": true }
+        }
+      }
+    },
+    "voice": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "stt": { "type": "string", "enum": ["browser", "openai", "deepgram"] },
+        "tts": { "type": "string", "enum": ["browser", "openai", "elevenlabs"] },
+        "voice_id": { "type": "string" }
+      }
+    },
+    "integrations": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": ["id"],
+            "additionalProperties": false,
+            "properties": {
+              "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+              "modes": { "type": "array", "items": { "type": "string" } },
+              "side_effect": { "$ref": "#/$defs/sideEffect" }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["mcp", "name", "side_effect"],
+            "additionalProperties": false,
+            "properties": {
+              "mcp": { "type": "string" },
+              "name": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+              "side_effect": { "$ref": "#/$defs/sideEffect" },
+              "overrides": { "type": "object", "additionalProperties": { "$ref": "#/$defs/sideEffect" } }
+            }
+          },
+          {
+            "type": "object",
+            "required": ["module"],
+            "additionalProperties": false,
+            "properties": {
+              "module": { "type": "string" },
+              "secrets": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "$defs": {
+    "decision": { "type": "string", "enum": ["allow", "approve", "deny"] },
+    "sideEffect": { "type": "string", "enum": ["read", "write", "spend", "send", "publish", "deploy", "hire", "board"] }
+  }
+}

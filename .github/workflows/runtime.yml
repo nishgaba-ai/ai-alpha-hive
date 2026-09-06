@@ -1,0 +1,41 @@
+name: runtime
+
+on:
+  push:
+    branches: [main]
+    paths: ["runtime/**", "templates/companies/**", "docs/company/tools.md", "platform/web/**"]
+  pull_request:
+    paths: ["runtime/**", "templates/companies/**", "docs/company/tools.md", "platform/web/**"]
+
+jobs:
+  runtime:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install
+        run: npm ci --prefix runtime
+      - name: Typecheck
+        run: npm run typecheck --prefix runtime
+      - name: Manifest / docs / templates agree
+        run: npm run check:manifest --prefix runtime
+      - name: Tests (gate, ledger, mock company end-to-end, ERP, export)
+        run: npm test --prefix runtime
+      - name: Build
+        run: npm run build --prefix runtime
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install
+        run: npm ci --prefix platform/web
+      - name: Typecheck
+        run: npx --prefix platform/web tsc --noEmit -p platform/web/tsconfig.json
+      - name: Lint
+        run: npm run lint --prefix platform/web

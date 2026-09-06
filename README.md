@@ -26,6 +26,55 @@ is a property of the engine, never of a prompt.
 It runs two ways: as a CLI + [Claude Code plugin](plugin/) in your editor, and
 as the engine behind a prompt-to-website product.
 
+## Launch your AI company
+
+One human board, a company of agents. Describe the company you want; get
+roles (engineer, CMO, writers, paid media, finance, quants, sales) with
+real tools, real budgets and a treasury the engine caps, running as a live
+graph and a 3D floor you can watch. Every external side effect — spend,
+send, publish, deploy to prod, hire — is a gate the board controls, from
+the inbox, from Telegram, or by voice.
+
+```bash
+# runtime (once)
+cd runtime && npm install && npm run build && cd ..
+
+# a company from a template, on any model backend
+hive company init startup "Prodigal AI"            # or cmo, trading-research, real-estate, waste-management
+hive company validate --company prodigal-ai
+hive company run --group . --port 4700             # every company in this directory, one worker
+
+# the product UI (needs .env.local: HIVE_API_URL=http://localhost:4700)
+cd platform/web && npm install && npm run dev      # http://localhost:3000/c
+```
+
+What is in the box:
+
+- **Runtime** ([runtime/](runtime/)): providers for Anthropic, OpenRouter,
+  Ollama, Claude Code (Agent SDK) and a mock; the side-effect gate; a
+  scheduler; a double-entry ledger; an AES-GCM vault; SQLite control plane
+  with an HTTP API and SSE; export/import for migration.
+- **Integrations library** ([runtime/integrations/](runtime/integrations/)):
+  plugins with modes (permission bundles), declared secrets and guidance —
+  content, email (Postmark), LinkedIn, Slack, Telegram (board commands and
+  approvals), GA4, Search Console, Meta Ads. Guide:
+  [docs/company/integrations.md](docs/company/integrations.md).
+- **ERP under one roof**: people, payroll, expenses, time, cash accounts and
+  a monthly statement CSV for the CA ([docs/company/erp.md](docs/company/erp.md)).
+- **Voice**: an MCP server so Claude's apps can run the company by voice,
+  plus an in-product voice console ([docs/company/voice.md](docs/company/voice.md)).
+- **UI** ([platform/web/app/c/](platform/web/app/c/)): group of verticals,
+  org graph, 3D floor, missions, task tracker, inbox, treasury, ERP,
+  integrations, settings, templates gallery — in the Obsidian & Brass
+  design system.
+- **Plan and specs**: [COMPANY-PLAN.md](COMPANY-PLAN.md), [docs/company/](docs/company/).
+- **Skills**: `company-launch`, `company-role`, `company-treasury`,
+  `company-integrate`, `company-infra`, `hive-design`.
+
+Tests: `npm test` in `runtime/` runs the gate, ledger, ERP, export and a
+full mock company end-to-end (mission → plan → runs → parked approval →
+board decision → done).
+
 ## Quickstart
 
 ```bash
@@ -54,9 +103,11 @@ what you use. Migrating machines is: install Go+Node, clone, copy `.env`.
 ```
 cmd/hive/        CLI entrypoint
 internal/        engine: cli/ config/ gates/ (graph/ modules/ deploy/ to come)
-plugin/          Claude Code plugin + skills (hive-launch, hive-audit, …)
+plugin/          Claude Code plugin + skills (hive-launch, hive-audit, company-*, hive-design)
 modules/         official module registry (cms, integrations, payments, seo)
-templates/       site templates (marketing, blog, store, docs, portfolio)
+templates/       site templates (marketing, …) and company templates (startup, cmo)
+runtime/         company runtime worker (TypeScript): tool manifest, company schema
+platform/web/    the platform UI (Next.js) — gains the company graph in C2
 analyzers/ts/    TypeScript sidecar: type-aware site graph emitter
 examples/        deployable end-to-end examples
 docs/            quickstart, architecture, module spec, gates, intent graph

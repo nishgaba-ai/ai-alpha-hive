@@ -12,3 +12,6 @@ next-env.d.ts
 
 # sqlite data (DATA_DIR volume in production)
 data/
+
+# synced from ../../docs/company by scripts/sync-docs.mjs
+content/docs/

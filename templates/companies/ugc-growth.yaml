@@ -1,0 +1,108 @@
+# Company template: ugc-growth
+# Creators on commission, the Submagic route (docs/company/playbooks/ugc-creators.md):
+# prove the format yourself, wait for the signal, recruit at volume, pay
+# 30% lifetime, one video a day, no ads. A growth lead runs it with a
+# format tester, a recruiter, creator ops and an analyst. Every publish
+# and every first contact parks for the board; payouts go through ERP.
+
+company:
+  name: "Replace Me Creators"
+  slug: replace-me-creators
+  mission: "Get creator content to 20% of new revenue within 90 days: prove one clip format, sign 60 creators on 30% lifetime, one video a day each"
+  currency: INR
+  board:
+    - email: you@example.com
+      role: owner
+  concurrency: 4
+
+providers:
+  default: anthropic
+  ollama:
+    kind: openai-compatible
+    base_url: http://localhost:11434/v1
+
+treasury:
+  monthly_cap: 60000
+  approval_threshold: 2500
+  reserve: 10000
+  card_provider: none
+
+policies:
+  spend:   { under_threshold: allow, otherwise: approve, strict: true, merchants: { allow: [canva.com, capcut.com, notion.so] } }
+  send:    { first_contact: approve, reply: allow }
+  publish: { default: approve }
+  deploy:  { preview: allow, prod: approve }
+  hire:    { default: approve }
+  quiet_hours: { tz: Asia/Kolkata, from: "21:00", to: "09:00", block: [send, publish] }
+
+roles:
+  - id: growth-lead
+    title: Head of Creator Growth
+    harness: api
+    model: anthropic/claude-fable-5-1
+    effort: xhigh
+    reports_to: board
+    tools: [task.*, agent.list, message.*, web.*, content.*, creators.*, report.weekly, artifact.save, telegram.notify]
+    budget: { monthly: 5000 }
+    prompt: roles/growth-lead.md
+
+  - id: format-tester
+    title: Format Tester
+    harness: api
+    model: anthropic/claude-opus-5
+    effort: high
+    reports_to: growth-lead
+    tools: [task.update, task.list, message.*, web.*, content.*, artifact.save]
+    budget: { monthly: 4000 }
+    prompt: roles/format-tester.md
+
+  - id: recruiter
+    title: Creator Recruiter
+    harness: api
+    model: anthropic/claude-opus-5
+    effort: high
+    reports_to: growth-lead
+    tools: [task.update, task.list, message.*, web.*, email.*, creators.list, creators.add, artifact.save]
+    budget: { monthly: 8000 }
+    count: 2
+    prompt: roles/creator-recruiter.md
+
+  - id: creator-ops
+    title: Creator Operations
+    harness: api
+    model: anthropic/claude-sonnet-5
+    effort: medium
+    reports_to: growth-lead
+    tools: [task.update, task.list, message.*, email.*, creators.*, artifact.save]
+    budget: { monthly: 4000 }
+    prompt: roles/creator-ops.md
+
+  - id: analyst
+    title: Growth Analyst
+    harness: api
+    model: anthropic/claude-sonnet-5
+    effort: medium
+    reports_to: growth-lead
+    tools: [task.update, task.list, message.*, creators.list, creators.stats, ga4.*, wallet.read, report.weekly, artifact.save]
+    budget: { monthly: 2000 }
+    prompt: roles/analyst.md
+
+teams:
+  - id: format
+    lead: growth-lead
+    members: [format-tester, analyst]
+  - id: creators
+    lead: growth-lead
+    members: [recruiter, creator-ops]
+
+integrations:
+  - id: content
+    modes: [draft, publish]
+  - id: email
+    modes: [send, read]
+  - id: creators
+    modes: [manage, payout]
+  - id: ga4
+    modes: [read]
+  - id: telegram
+    modes: [notify]

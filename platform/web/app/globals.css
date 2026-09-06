@@ -1,17 +1,230 @@
 @import "tailwindcss";
 
+/* "Sunlit" — light, colourful, rounded. docs/company/design-system.md
+   Old token names stay as aliases (brass → accent) so every screen moves at once. */
 :root {
-  --ground: #0e0c08;
-  --panel: #17140d;
-  --line: #2b2618;
-  --ink: #ede7d8;
-  --muted: #a89e87;
-  --brand: #e2a82f;
-  --brand-dim: #8a6717;
-  --good: #7fbe8f;
+  color-scheme: light;
+  --ground: #f6f5fb;
+  --surface-0: #eeedf7;
+  --surface-1: #ffffff;
+  --surface-2: #f3f1ff;
+  --surface-glass: rgba(255, 255, 255, 0.72);
+  --ink: #191633;
+  --ink-2: #4a4666;
+  --muted: #7d7896;
+  --accent: #6c5ce7;
+  --accent-2: #a29bfe;
+  --accent-dim: #4b3fd1;
+  --accent-glow: rgba(108, 92, 231, 0.28);
+  --pink: #ff7eb3;
+  --live: #16b981;
+  --parked: #f59e0b;
+  --failed: #ef476f;
+  --idle: #b8b4cc;
+  --hairline: rgba(25, 22, 51, 0.08);
+  --shadow-1: 0 1px 2px rgba(25, 22, 51, 0.04), 0 8px 24px rgba(108, 92, 231, 0.07);
+  --shadow-2: 0 2px 4px rgba(25, 22, 51, 0.05), 0 18px 48px rgba(108, 92, 231, 0.14);
+  --shadow-glow: 0 0 0 1px var(--accent-2), 0 0 32px var(--accent-glow);
+  --r-1: 12px;
+  --r-2: 18px;
+  --r-3: 26px;
+
+  /* aliases used across screens */
+  --brass: var(--accent);
+  --brass-2: var(--accent-2);
+  --brass-dim: var(--accent-dim);
+  --brass-glow: var(--accent-glow);
+  --panel: var(--surface-1);
+  --line: var(--hairline);
+  --brand: var(--accent);
+  --good: var(--live);
 }
 
+/* Light is the default everywhere; dark only when the person picks it (theme toggle). */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ground: #0f0e1a;
+  --surface-0: #15142a;
+  --surface-1: #1b1a33;
+  --surface-2: #232145;
+  --surface-glass: rgba(27, 26, 51, 0.7);
+  --ink: #f3f1ff;
+  --ink-2: #c7c3e6;
+  --muted: #8c88ad;
+  --idle: #4a4768;
+  --hairline: rgba(243, 241, 255, 0.08);
+  --shadow-1: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --shadow-2: 0 18px 48px rgba(0, 0, 0, 0.5);
+}
+
+html,
 body {
   background: var(--ground);
   color: var(--ink);
+  font-family: var(--font-ui), "Inter", system-ui, sans-serif;
 }
+
+.font-display {
+  font-family: var(--font-display), "Outfit", "Inter", system-ui, sans-serif;
+  letter-spacing: -0.02em;
+  font-weight: 600;
+}
+.font-mono {
+  font-family: var(--font-mono), "JetBrains Mono", ui-monospace, monospace;
+}
+
+.label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+/* surfaces */
+.card {
+  background: var(--surface-1);
+  border-radius: var(--r-2);
+  box-shadow: var(--shadow-1);
+  transition: transform 300ms cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 300ms;
+}
+.card-hover:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-2);
+}
+.glass {
+  background: var(--surface-glass);
+  backdrop-filter: blur(18px) saturate(1.3);
+  -webkit-backdrop-filter: blur(18px) saturate(1.3);
+  border-radius: var(--r-3);
+  box-shadow: var(--shadow-2), 0 0 0 1px rgba(255, 255, 255, 0.6) inset;
+}
+.raised {
+  background: var(--surface-2);
+  border-radius: var(--r-1);
+}
+.hairline {
+  box-shadow: 0 0 0 1px var(--hairline);
+}
+
+/* ground light + a whisper of grain */
+.ground-glow {
+  background:
+    radial-gradient(ellipse 55% 40% at 20% -10%, rgba(108, 92, 231, 0.16) 0%, transparent 60%),
+    radial-gradient(ellipse 45% 35% at 85% 0%, rgba(255, 126, 179, 0.16) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 30% at 60% 110%, rgba(22, 185, 129, 0.1) 0%, transparent 60%);
+}
+.grain {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.025;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  z-index: 50;
+}
+
+/* status */
+.ring-status {
+  box-shadow: 0 0 0 2px var(--s, var(--idle));
+}
+.status-live { --s: var(--live); }
+.status-parked { --s: var(--parked); }
+.status-failed { --s: var(--failed); }
+.status-idle { --s: var(--idle); }
+
+@keyframes breathe {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+.breathe { animation: breathe 2s ease-in-out infinite; }
+@keyframes rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.rise { animation: rise 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+@keyframes pulse-dot {
+  0% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+.pulse-dot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: currentColor;
+  animation: pulse-dot 1.6s ease-out infinite;
+}
+
+/* buttons: pills */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 999px;
+  padding: 0.6rem 1.1rem;
+  font-weight: 600;
+  font-size: 14px;
+  transition: transform 120ms, box-shadow 200ms, background 200ms;
+}
+.btn:active { transform: scale(0.97); }
+.btn-primary {
+  background: linear-gradient(120deg, var(--accent), var(--pink));
+  color: #fff;
+  box-shadow: 0 8px 22px rgba(108, 92, 231, 0.32);
+}
+.btn-primary:hover { box-shadow: 0 12px 30px rgba(108, 92, 231, 0.42); transform: translateY(-1px); }
+.btn-glass {
+  background: var(--surface-1);
+  color: var(--ink);
+  box-shadow: 0 0 0 1px var(--hairline), var(--shadow-1);
+}
+.btn-glass:hover { box-shadow: 0 0 0 1px var(--accent-2), var(--shadow-2); }
+.btn-ghost { color: var(--ink-2); }
+.btn-ghost:hover { color: var(--ink); background: var(--surface-2); }
+.btn-danger {
+  background: rgba(239, 71, 111, 0.1);
+  color: var(--failed);
+}
+.btn-danger:hover { background: rgba(239, 71, 111, 0.16); }
+
+.field {
+  width: 100%;
+  background: var(--surface-1);
+  border-radius: var(--r-1);
+  padding: 0.65rem 0.85rem;
+  color: var(--ink);
+  box-shadow: 0 0 0 1px var(--hairline) inset;
+  outline: none;
+}
+.field:focus { box-shadow: 0 0 0 1px var(--accent-2) inset, 0 0 0 4px rgba(108, 92, 231, 0.14); }
+select.field { appearance: none; }
+
+/* React Flow theming */
+.react-flow__attribution { display: none; }
+.react-flow__edge-path { stroke: rgba(25, 22, 51, 0.18); stroke-width: 1.5; }
+.react-flow__edge.active .react-flow__edge-path { stroke: var(--accent); }
+.react-flow__controls { background: var(--surface-1); border-radius: var(--r-1); box-shadow: var(--shadow-1); overflow: hidden; }
+.react-flow__controls button { background: transparent; border-bottom: 1px solid var(--hairline); fill: var(--ink-2); }
+.react-flow__controls button:hover { background: var(--surface-2); }
+.react-flow__minimap { background: var(--surface-0) !important; border-radius: var(--r-1); }
+
+@media (prefers-reduced-motion: reduce) {
+  .breathe, .rise, .pulse-dot::after { animation: none; }
+  .card, .btn { transition: none; }
+}
+
+::selection { background: var(--accent-2); color: #fff; }
+*:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* blog article typography */
+.prose-hive { color: var(--ink-2); line-height: 1.7; font-size: 16px; }
+.prose-hive h2 { font-family: var(--font-display), "Outfit", sans-serif; color: var(--ink); font-size: 1.5rem; margin: 2rem 0 0.75rem; letter-spacing: -0.01em; }
+.prose-hive h3 { color: var(--ink); font-size: 1.15rem; font-weight: 600; margin: 1.5rem 0 0.5rem; }
+.prose-hive p { margin: 0 0 1rem; }
+.prose-hive a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+.prose-hive ul, .prose-hive ol { margin: 0 0 1rem 1.25rem; }
+.prose-hive li { margin: 0.25rem 0; }
+.prose-hive code { font-family: var(--font-mono), monospace; font-size: 0.9em; background: var(--surface-2); padding: 0.1em 0.35em; border-radius: 6px; }
+.prose-hive pre { background: var(--surface-0); padding: 1rem; border-radius: var(--r-1); overflow-x: auto; margin: 0 0 1rem; }
+.prose-hive pre code { background: none; padding: 0; }
+.prose-hive blockquote { border-left: 3px solid var(--accent-2); padding-left: 1rem; color: var(--muted); margin: 0 0 1rem; }
+.prose-hive img { border-radius: var(--r-2); }

@@ -1,7 +1,7 @@
 {
   "name": "alpha-hive",
-  "description": "AI Alpha Hive: launch, audit, and ship sites through the hive engine. The AI proposes, the gates dispose.",
-  "version": "0.0.1",
+  "description": "AI Alpha Hive: launch your AI company. Launch, audit and ship products through the hive engine; define roles, budgets, tools and policies for a company of agents the board controls. The AI proposes, the gates dispose.",
+  "version": "0.1.0",
   "author": { "name": "nishgaba-ai" },
   "homepage": "https://github.com/nishgaba-ai/ai-alpha-hive",
   "license": "MIT"

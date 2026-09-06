@@ -1,0 +1,100 @@
+# Company template: waste-management
+# Market-entry vertical for waste management in India: regulation and
+# tender research, partner and municipality outreach (gated), an ops
+# planner for routes and vendors, and a compliance role that keeps the
+# paperwork honest. Physical operations stay with humans; the agents
+# find, qualify, plan and document.
+
+company:
+  name: "Prodigal Waste Management"
+  slug: prodigal-waste-management
+  mission: "Win one municipal or industrial waste contract in Gujarat within two quarters, with a costed operations plan and compliance file"
+  currency: INR
+  board:
+    - email: nishchal@prodigalai.com
+      role: owner
+  concurrency: 4
+
+providers:
+  default: anthropic
+
+treasury:
+  monthly_cap: 50000
+  approval_threshold: 2500
+  reserve: 10000
+  card_provider: none
+
+policies:
+  spend:   { under_threshold: allow, otherwise: approve, strict: true, merchants: { allow: [tenderdetail.com, gem.gov.in, cpcb.nic.in] } }
+  send:    { first_contact: approve, reply: allow }
+  publish: { default: approve }
+  deploy:  { preview: allow, prod: approve }
+  hire:    { default: approve }
+  quiet_hours: { tz: Asia/Kolkata, from: "21:00", to: "09:00", block: [send, publish] }
+
+roles:
+  - id: gm
+    title: General Manager (AI)
+    harness: api
+    model: mock
+    effort: xhigh
+    reports_to: board
+    tools: [task.*, agent.list, message.*, web.*, content.*, report.weekly, artifact.save, telegram.notify]
+    budget: { monthly: 4000 }
+    prompt: roles/general-manager.md
+
+  - id: bd
+    title: Business Development
+    harness: api
+    model: mock
+    effort: high
+    reports_to: gm
+    tools: [task.update, task.list, message.*, web.*, email.*, artifact.save, card.purchase, wallet.read]
+    budget: { monthly: 10000, per_tx: 2500 }
+    prompt: roles/sales.md
+
+  - id: ops
+    title: Operations Planner
+    harness: api
+    model: mock
+    effort: high
+    reports_to: gm
+    tools: [task.update, task.list, message.*, web.*, artifact.save]
+    budget: { monthly: 6000 }
+    prompt: roles/ops-planner.md
+
+  - id: compliance
+    title: Compliance Officer
+    harness: api
+    model: mock
+    effort: high
+    reports_to: gm
+    tools: [task.update, task.list, message.*, web.*, artifact.save, telegram.notify]
+    budget: { monthly: 4000 }
+    prompt: roles/compliance.md
+
+  - id: researcher
+    title: Market Researcher
+    harness: api
+    model: mock
+    effort: medium
+    reports_to: gm
+    tools: [task.update, task.list, message.*, web.*, artifact.save]
+    budget: { monthly: 3000 }
+    prompt: roles/researcher.md
+
+teams:
+  - id: entry
+    lead: gm
+    members: [bd, researcher]
+  - id: delivery
+    lead: ops
+    members: [ops, compliance]
+
+integrations:
+  - id: content
+    modes: [draft, publish]
+  - id: email
+    modes: [send, read]
+  - id: telegram
+    modes: [notify]

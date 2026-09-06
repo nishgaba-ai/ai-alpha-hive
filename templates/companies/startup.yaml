@@ -1,0 +1,105 @@
+# Company template: startup
+# A one-founder software company: a CEO that plans, an engineer that ships
+# through hive (Claude Code harness), a marketer that drafts and (with
+# approval) publishes, and a finance role that closes the week.
+#
+# Everything the board controls is in this file. Agents cannot edit it.
+# Models: anthropic/<id> · openrouter/<vendor>/<model> · ollama/<model> ·
+# claude-code (Claude Code login) · mock (demo, no API key).
+
+company:
+  name: "Replace Me Inc"
+  slug: replace-me
+  mission: "Replace this with the one outcome the company exists to produce this quarter"
+  currency: INR
+  board:
+    - email: you@example.com
+      role: owner
+  workspace:
+    repo: github.com/you/your-product
+    hive_project: .
+  concurrency: 3
+
+providers:
+  default: anthropic
+  ollama:
+    kind: openai-compatible
+    base_url: http://localhost:11434/v1
+  openrouter:
+    kind: openai-compatible
+    base_url: https://openrouter.ai/api/v1
+    api_key: env:OPENROUTER_API_KEY
+
+treasury:
+  monthly_cap: 30000
+  approval_threshold: 1500
+  reserve: 5000
+  card_provider: none
+
+policies:
+  spend:   { under_threshold: allow, otherwise: approve, strict: false }
+  send:    { first_contact: approve, reply: allow }
+  publish: { default: approve }
+  deploy:  { preview: allow, prod: approve }
+  hire:    { default: approve }
+  quiet_hours: { tz: Asia/Kolkata, from: "22:00", to: "08:00", block: [send, publish] }
+
+roles:
+  - id: ceo
+    title: Chief Executive
+    harness: api
+    model: anthropic/claude-fable-5-1
+    effort: xhigh
+    reports_to: board
+    tools: [task.*, agent.list, message.*, web.*, report.weekly, artifact.save, telegram.notify]
+    budget: { monthly: 2000 }
+    prompt: roles/ceo.md
+
+  - id: engineer
+    title: Software Engineer
+    harness: agent-sdk
+    model: claude-code
+    effort: xhigh
+    reports_to: ceo
+    tools: [hive.*, github.pr.open, github.issue.create, task.update, task.list, message.*, artifact.save, web.fetch]
+    budget: { monthly: 8000 }
+    workspace: true
+    count: 1
+    prompt: roles/engineer.md
+
+  - id: marketer
+    title: Growth Marketer
+    harness: api
+    model: anthropic/claude-opus-5
+    effort: high
+    reports_to: ceo
+    tools: [task.update, task.list, message.*, web.*, content.*, email.send, wallet.read, artifact.save]
+    budget: { monthly: 10000, per_tx: 1000 }
+    escalate: { on: [publish.denied, spend.denied], to: ceo }
+    prompt: roles/marketer.md
+
+  - id: finance
+    title: Finance
+    harness: api
+    model: anthropic/claude-sonnet-5
+    effort: medium
+    reports_to: ceo
+    tools: [wallet.read, card.transactions, task.list, report.weekly, message.send, artifact.save]
+    budget: { monthly: 1000 }
+    prompt: roles/finance.md
+
+teams:
+  - id: product
+    lead: engineer
+    members: [engineer]
+  - id: growth
+    lead: marketer
+    members: [marketer]
+
+integrations:
+  - id: content
+    modes: [draft, publish]
+  - id: email
+    modes: [send, read]
+  - id: telegram
+    modes: [notify]

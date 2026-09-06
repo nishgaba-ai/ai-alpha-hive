@@ -5,14 +5,24 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "predev": "node scripts/sync-docs.mjs",
+    "prebuild": "node scripts/sync-docs.mjs",
+    "sync-docs": "node scripts/sync-docs.mjs"
   },
   "dependencies": {
+    "@dagrejs/dagre": "^3.1.1",
     "@node-rs/argon2": "^2.0.2",
+    "@react-three/drei": "^10.7.8",
+    "@react-three/fiber": "^9.7.0",
+    "@xyflow/react": "^12.11.6",
     "better-sqlite3": "^12.2.0",
+    "marked": "^18.0.11",
     "next": "^15.5.23",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "three": "^0.185.1",
+    "yaml": "^2.9.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
@@ -21,6 +31,7 @@
     "@types/node": "^24",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/three": "^0.185.4",
     "eslint": "^9",
     "eslint-config-next": "^15.5.23",
     "tailwindcss": "^4",

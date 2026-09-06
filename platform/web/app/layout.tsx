@@ -1,73 +1,37 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { Outfit, Geist, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
 const siteUrl = process.env.SITE_URL ?? "http://localhost:3000";
 
+const display = Outfit({ subsets: ["latin"], variable: "--font-display", weight: ["500", "600", "700"] });
+const ui = Geist({ subsets: ["latin"], variable: "--font-ui" });
+const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono", weight: ["400", "500"] });
+
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "Nish Alpha Hive",
-    template: "%s · Nish Alpha Hive",
+    default: "Launch your AI company · Alpha Hive",
+    template: "%s · Alpha Hive",
   },
   description:
-    "Nish Alpha Hive is your AI product deployment assistant — it takes your product from prompt to production in minutes, and nothing ships unless every policy gate passes.",
+    "Launch your AI company: one human board, a company of agents with real tools, budgets and infrastructure — every external action a gate you control.",
   openGraph: {
-    title: "Nish Alpha Hive — AI product deployment assistant",
-    description:
-      "From prompt to production: an AI assistant that launches gate-checked products for devs and non-devs.",
+    title: "Launch your AI company",
+    description: "One human board, a company of agents. Engineers, marketers, finance — with budgets, gates and a live graph.",
     url: siteUrl,
-    siteName: "Nish Alpha Hive",
+    siteName: "Alpha Hive",
     type: "website",
   },
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning className={`${display.variable} ${ui.variable} ${mono.variable}`}>
       <body className="antialiased">
-        <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
-          <Link href="/" className="flex items-center gap-2 font-semibold tracking-tight">
-            <span className="inline-block h-2.5 w-2.5 rotate-45 bg-[var(--brand)]" />
-            Nish Alpha Hive
-          </Link>
-          <nav className="flex items-center gap-6 text-sm text-[var(--muted)]">
-            <Link href="/founder" className="hover:text-[var(--ink)]">
-              Founder
-            </Link>
-            <a
-              href="https://github.com/nishgaba-ai/ai-alpha-hive"
-              className="hover:text-[var(--ink)]"
-            >
-              GitHub
-            </a>
-            <Link
-              href="/dashboard"
-              className="rounded-md border border-[var(--line)] bg-[var(--panel)] px-4 py-1.5 text-[var(--ink)] hover:border-[var(--brand-dim)]"
-            >
-              Dashboard
-            </Link>
-          </nav>
-        </header>
+        <script dangerouslySetInnerHTML={{ __html: "try{var t=localStorage.getItem('theme');if(t)document.documentElement.setAttribute('data-theme',t)}catch(e){}" }} />
+        <div className="grain" aria-hidden />
         {children}
-        <footer className="mx-auto max-w-6xl border-t border-[var(--line)] px-6 py-8 text-sm text-[var(--muted)]">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <span>© {new Date().getFullYear()} Nish Alpha Hive</span>
-            <span>
-              Built and shipped by its own engine —{" "}
-              <a
-                href="https://github.com/nishgaba-ai/ai-alpha-hive"
-                className="underline decoration-[var(--brand-dim)] underline-offset-4 hover:text-[var(--ink)]"
-              >
-                open source
-              </a>
-            </span>
-          </div>
-        </footer>
       </body>
     </html>
   );

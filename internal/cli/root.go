@@ -23,6 +23,7 @@ func Root() *cobra.Command {
 		newDoctorCmd(),
 		newNewCmd(),
 		newShipCmd(),
+		newCompanyCmd(),
 	)
 	return root
 }

@@ -1,0 +1,91 @@
+# Company template: trading-research
+# An AI trading research firm. Agents research, model, backtest, monitor
+# risk and write the morning note. They never execute trades: there is no
+# execution tool in the catalogue by design — the board places orders with
+# its broker, and the firm's edge is the research, the discipline and the
+# audit trail. Revenue model: research subscriptions (payment links).
+
+company:
+  name: "Replace Me Capital Research"
+  slug: replace-me-capital
+  mission: "Publish a daily India-equities morning note with three ranked, backtested ideas and a risk budget the board can act on before 09:00 IST"
+  currency: INR
+  board:
+    - email: you@example.com
+      role: owner
+  concurrency: 4
+
+providers:
+  default: anthropic
+  ollama:
+    kind: openai-compatible
+    base_url: http://localhost:11434/v1
+
+treasury:
+  monthly_cap: 40000
+  approval_threshold: 2000
+  reserve: 8000
+  card_provider: none
+
+policies:
+  spend:   { under_threshold: allow, otherwise: approve, strict: true, merchants: { allow: [tradingview.com, nseindia.com, screener.in] } }
+  send:    { first_contact: approve, reply: allow }
+  publish: { default: approve }
+  deploy:  { preview: allow, prod: approve }
+  hire:    { default: approve }
+  quiet_hours: { tz: Asia/Kolkata, from: "23:00", to: "06:00", block: [send, publish] }
+
+roles:
+  - id: head
+    title: Head of Research
+    harness: api
+    model: anthropic/claude-fable-5-1
+    effort: xhigh
+    reports_to: board
+    tools: [task.*, agent.list, message.*, web.*, content.*, report.weekly, artifact.save, telegram.notify]
+    budget: { monthly: 4000 }
+    prompt: roles/head-of-research.md
+
+  - id: quant
+    title: Quant Analyst
+    harness: api
+    model: anthropic/claude-opus-5
+    effort: xhigh
+    reports_to: head
+    tools: [task.update, task.list, message.*, web.*, artifact.save, card.purchase, wallet.read]
+    budget: { monthly: 12000, per_tx: 2000 }
+    count: 2
+    prompt: roles/quant.md
+
+  - id: risk
+    title: Risk Manager
+    harness: api
+    model: anthropic/claude-opus-5
+    effort: high
+    reports_to: head
+    tools: [task.update, task.list, message.*, artifact.save, telegram.notify]
+    budget: { monthly: 3000 }
+    prompt: roles/risk.md
+
+  - id: writer
+    title: Research Writer
+    harness: api
+    model: anthropic/claude-sonnet-5
+    effort: medium
+    reports_to: head
+    tools: [task.update, task.list, message.*, content:draft, email.send, artifact.save]
+    budget: { monthly: 3000 }
+    prompt: roles/writer.md
+
+teams:
+  - id: desk
+    lead: head
+    members: [quant, risk, writer]
+
+integrations:
+  - id: content
+    modes: [draft, publish]
+  - id: email
+    modes: [send, read]
+  - id: telegram
+    modes: [notify]

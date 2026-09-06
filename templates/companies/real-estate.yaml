@@ -1,0 +1,92 @@
+# Company template: real-estate
+# A brokerage/advisory vertical: listings research, buyer and seller
+# outreach (gated), site-visit scheduling by message, content for the
+# brand, and a deals ledger. Agents never sign, pay or promise on the
+# board's behalf; they qualify, prepare and follow up.
+
+company:
+  name: "Replace Me Realty"
+  slug: replace-me-realty
+  mission: "Close 3 residential deals in Ahmedabad this quarter from a pipeline of 40 qualified buyers"
+  currency: INR
+  board:
+    - email: you@example.com
+      role: owner
+  concurrency: 4
+
+providers:
+  default: anthropic
+
+treasury:
+  monthly_cap: 60000
+  approval_threshold: 3000
+  reserve: 10000
+  card_provider: none
+
+policies:
+  spend:   { under_threshold: allow, otherwise: approve, strict: true, merchants: { allow: [99acres.com, magicbricks.com, housing.com, ads.meta.com] } }
+  send:    { first_contact: approve, reply: allow }
+  publish: { default: approve }
+  deploy:  { preview: allow, prod: approve }
+  hire:    { default: approve }
+  quiet_hours: { tz: Asia/Kolkata, from: "21:00", to: "09:00", block: [send, publish] }
+
+roles:
+  - id: principal
+    title: Principal Broker (AI)
+    harness: api
+    model: anthropic/claude-fable-5-1
+    effort: xhigh
+    reports_to: board
+    tools: [task.*, agent.list, message.*, web.*, content.*, report.weekly, artifact.save, telegram.notify]
+    budget: { monthly: 4000 }
+    prompt: roles/principal-broker.md
+
+  - id: sales
+    title: Sales Associate
+    harness: api
+    model: anthropic/claude-opus-5
+    effort: high
+    reports_to: principal
+    tools: [task.update, task.list, message.*, web.*, email.*, payment-link.create, artifact.save]
+    budget: { monthly: 8000 }
+    count: 2
+    prompt: roles/sales.md
+
+  - id: researcher
+    title: Market Researcher
+    harness: api
+    model: anthropic/claude-sonnet-5
+    effort: medium
+    reports_to: principal
+    tools: [task.update, task.list, message.*, web.*, artifact.save]
+    budget: { monthly: 3000 }
+    prompt: roles/researcher.md
+
+  - id: marketer
+    title: Growth Marketer
+    harness: api
+    model: anthropic/claude-opus-5
+    effort: high
+    reports_to: principal
+    tools: [task.update, task.list, message.*, web.*, content.*, ads-meta.*, wallet.read, card.purchase, artifact.save]
+    budget: { monthly: 25000, per_tx: 3000 }
+    prompt: roles/marketer.md
+
+teams:
+  - id: deals
+    lead: principal
+    members: [sales, researcher]
+  - id: brand
+    lead: marketer
+    members: [marketer]
+
+integrations:
+  - id: content
+    modes: [draft, publish]
+  - id: email
+    modes: [send, read]
+  - id: ads-meta
+    modes: [read, manage, launch]
+  - id: telegram
+    modes: [notify]
