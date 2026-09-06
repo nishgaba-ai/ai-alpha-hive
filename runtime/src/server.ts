@@ -123,6 +123,7 @@ export function startServer(registry: Registry, port: number, opts: { onReload?:
   };
 
   const routes: Route[] = [
+    route("GET", "/", (_r, res) => json(res, 200, { ok: true, service: "hive-company-worker", companies: registry.all().length, ui: uiUrl() })),
     route("GET", "/api/health", (_r, res) => json(res, 200, { ok: true, companies: registry.all().length, vault: vaultConfigured(), providers: { anthropic: !!process.env.ANTHROPIC_API_KEY, openrouter: !!process.env.OPENROUTER_API_KEY }, public_url: process.env.HIVE_PUBLIC_URL ?? null })),
     route("GET", "/api/companies", (_r, res) => json(res, 200, registry.all().map(summary))),
     route("GET", "/api/catalogue", (_r, res) => json(res, 200, { ...catalogue(), integrations: INTEGRATIONS.map(describe) })),

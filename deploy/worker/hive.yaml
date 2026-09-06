@@ -1,0 +1,11 @@
+# The worker as a hive app so `hive ship --driver droplet` can deploy it.
+# Declare the API domain here once DNS exists; until then the driver gives
+# an http://<slug>.<ip>.sslip.io preview (fine for the UI, not for OAuth
+# callbacks, which need https).
+site:
+  name: "Prodigal AI API"
+  domain: api.prodigalai.com
+  intent: "Run the Prodigal AI companies: agents, gates, approvals, the control-plane API"
+  audience: ["the board"]
+  journeys: []
+pages: {}
