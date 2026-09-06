@@ -492,7 +492,8 @@ export function startServer(registry: Registry, port: number, opts: { onReload?:
       res.writeHead(204, { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "Authorization, Content-Type", "Access-Control-Allow-Methods": "GET,POST,PUT,PATCH,DELETE" });
       return res.end();
     }
-    if (token && req.headers.authorization !== `Bearer ${token}` && url.searchParams.get("token") !== token) return json(res, 401, { error: "unauthorized" });
+    const open = url.pathname === "/" || url.pathname === "/api/health" || url.pathname === "/api/oauth/callback";
+    if (token && !open && req.headers.authorization !== `Bearer ${token}` && url.searchParams.get("token") !== token) return json(res, 401, { error: "unauthorized" });
     for (const r of routes) {
       if (r.method !== req.method) continue;
       const m = r.pattern.exec(url.pathname);

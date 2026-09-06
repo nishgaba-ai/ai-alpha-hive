@@ -1,5 +1,6 @@
 site:
-  name: "Nish Alpha Hive"
+  name: "Prodigal AI"
+  domain: hive.prodigalai.com
   intent: "Get founders and devs to launch their product to production in minutes"
   audience: ["non-technical founders", "developers", "small teams"]
   journeys:
