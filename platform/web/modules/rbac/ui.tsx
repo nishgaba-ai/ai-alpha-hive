@@ -29,12 +29,14 @@ export function Field({
   type,
   autoComplete,
   minLength,
+  defaultValue,
 }: {
   label: string;
   name: string;
   type: string;
   autoComplete?: string;
   minLength?: number;
+  defaultValue?: string;
 }) {
   return (
     <label className="block text-sm">
@@ -45,6 +47,7 @@ export function Field({
         required
         autoComplete={autoComplete}
         minLength={minLength}
+        defaultValue={defaultValue}
         className="mt-1.5 w-full rounded-md border border-[var(--line)] bg-[var(--panel)] px-3.5 py-2.5 outline-none focus:border-[var(--brand-dim)]"
       />
     </label>

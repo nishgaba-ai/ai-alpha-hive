@@ -3,28 +3,64 @@
   "$id": "https://github.com/nishgaba-ai/ai-alpha-hive/runtime/company.schema.json",
   "title": "company.yaml",
   "type": "object",
-  "required": ["company", "treasury", "policies", "roles"],
+  "required": [
+    "company",
+    "treasury",
+    "policies",
+    "roles"
+  ],
   "additionalProperties": false,
   "properties": {
     "company": {
       "type": "object",
-      "required": ["name", "slug", "mission", "currency", "board"],
+      "required": [
+        "name",
+        "slug",
+        "mission",
+        "currency",
+        "board"
+      ],
       "additionalProperties": false,
       "properties": {
-        "name": { "type": "string", "minLength": 1, "maxLength": 80 },
-        "slug": { "type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$" },
-        "mission": { "type": "string", "minLength": 10 },
-        "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "slug": {
+          "type": "string",
+          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+        },
+        "mission": {
+          "type": "string",
+          "minLength": 10
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$"
+        },
         "board": {
           "type": "array",
           "minItems": 1,
           "items": {
             "type": "object",
-            "required": ["email", "role"],
+            "required": [
+              "email",
+              "role"
+            ],
             "additionalProperties": false,
             "properties": {
-              "email": { "type": "string", "format": "email" },
-              "role": { "type": "string", "enum": ["owner", "admin"] }
+              "email": {
+                "type": "string",
+                "format": "email"
+              },
+              "role": {
+                "type": "string",
+                "enum": [
+                  "owner",
+                  "admin"
+                ]
+              }
             }
           }
         },
@@ -32,23 +68,71 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "repo": { "type": "string" },
-            "hive_project": { "type": "string" },
-            "path": { "type": "string", "description": "Local checkout for agent-sdk roles; default <company dir>/workspace" }
+            "repo": {
+              "type": "string"
+            },
+            "hive_project": {
+              "type": "string"
+            },
+            "path": {
+              "type": "string",
+              "description": "Local checkout for agent-sdk roles; default <company dir>/workspace"
+            }
           }
         },
-        "concurrency": { "type": "integer", "minimum": 1, "maximum": 32, "default": 4 }
+        "concurrency": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 32,
+          "default": 4
+        }
       }
     },
     "treasury": {
       "type": "object",
-      "required": ["monthly_cap", "approval_threshold"],
+      "required": [
+        "monthly_cap",
+        "approval_threshold"
+      ],
       "additionalProperties": false,
       "properties": {
-        "monthly_cap": { "type": "integer", "minimum": 0, "description": "Whole currency units" },
-        "approval_threshold": { "type": "integer", "minimum": 0 },
-        "reserve": { "type": "integer", "minimum": 0, "default": 0 },
-        "card_provider": { "type": "string", "enum": ["none", "stripe-issuing"], "default": "none" }
+        "monthly_cap": {
+          "type": "integer",
+          "minimum": 0,
+          "description": "Whole currency units"
+        },
+        "approval_threshold": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "reserve": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        },
+        "card_provider": {
+          "type": "string",
+          "enum": [
+            "none",
+            "stripe-issuing"
+          ],
+          "default": "none"
+        },
+        "gst_state": {
+          "type": "string",
+          "description": "Two-letter GST state code of the company (e.g. GJ, DL) for CGST/SGST vs IGST"
+        },
+        "gstin": {
+          "type": "string"
+        },
+        "invoice_prefix": {
+          "type": "string",
+          "default": "INV"
+        },
+        "address": {
+          "type": "string",
+          "description": "Billing address printed on invoices"
+        }
       }
     },
     "policies": {
@@ -59,15 +143,32 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "under_threshold": { "$ref": "#/$defs/decision" },
-            "otherwise": { "$ref": "#/$defs/decision" },
-            "strict": { "type": "boolean", "default": false },
+            "under_threshold": {
+              "$ref": "#/$defs/decision"
+            },
+            "otherwise": {
+              "$ref": "#/$defs/decision"
+            },
+            "strict": {
+              "type": "boolean",
+              "default": false
+            },
             "merchants": {
               "type": "object",
               "additionalProperties": false,
               "properties": {
-                "allow": { "type": "array", "items": { "type": "string" } },
-                "block": { "type": "array", "items": { "type": "string" } }
+                "allow": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "block": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
               }
             }
           }
@@ -76,29 +177,71 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "first_contact": { "$ref": "#/$defs/decision" },
-            "reply": { "$ref": "#/$defs/decision" }
+            "first_contact": {
+              "$ref": "#/$defs/decision"
+            },
+            "reply": {
+              "$ref": "#/$defs/decision"
+            }
           }
         },
-        "publish": { "type": "object", "additionalProperties": false, "properties": { "default": { "$ref": "#/$defs/decision" } } },
+        "publish": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "default": {
+              "$ref": "#/$defs/decision"
+            }
+          }
+        },
         "deploy": {
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "preview": { "$ref": "#/$defs/decision" },
-            "prod": { "$ref": "#/$defs/decision" }
+            "preview": {
+              "$ref": "#/$defs/decision"
+            },
+            "prod": {
+              "$ref": "#/$defs/decision"
+            }
           }
         },
-        "hire": { "type": "object", "additionalProperties": false, "properties": { "default": { "$ref": "#/$defs/decision" } } },
-        "quiet_hours": {
+        "hire": {
           "type": "object",
-          "required": ["tz", "from", "to", "block"],
           "additionalProperties": false,
           "properties": {
-            "tz": { "type": "string" },
-            "from": { "type": "string", "pattern": "^\\d{2}:\\d{2}$" },
-            "to": { "type": "string", "pattern": "^\\d{2}:\\d{2}$" },
-            "block": { "type": "array", "items": { "$ref": "#/$defs/sideEffect" } }
+            "default": {
+              "$ref": "#/$defs/decision"
+            }
+          }
+        },
+        "quiet_hours": {
+          "type": "object",
+          "required": [
+            "tz",
+            "from",
+            "to",
+            "block"
+          ],
+          "additionalProperties": false,
+          "properties": {
+            "tz": {
+              "type": "string"
+            },
+            "from": {
+              "type": "string",
+              "pattern": "^\\d{2}:\\d{2}$"
+            },
+            "to": {
+              "type": "string",
+              "pattern": "^\\d{2}:\\d{2}$"
+            },
+            "block": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/sideEffect"
+              }
+            }
           }
         }
       }
@@ -107,17 +250,40 @@
       "type": "object",
       "description": "Model backends. Keys are provider names referenced by roles as <provider>/<model>. anthropic, claude-code and mock exist implicitly.",
       "properties": {
-        "default": { "type": "string" }
+        "default": {
+          "type": "string"
+        }
       },
       "additionalProperties": {
         "type": "object",
-        "required": ["kind"],
+        "required": [
+          "kind"
+        ],
         "additionalProperties": false,
         "properties": {
-          "kind": { "type": "string", "enum": ["anthropic", "openai-compatible", "claude-code", "mock"] },
-          "base_url": { "type": "string" },
-          "api_key": { "type": "string", "pattern": "^(env|vault):[A-Z][A-Z0-9_]*$", "description": "env:NAME or vault:NAME — never a literal" },
-          "headers": { "type": "object", "additionalProperties": { "type": "string" } }
+          "kind": {
+            "type": "string",
+            "enum": [
+              "anthropic",
+              "openai-compatible",
+              "claude-code",
+              "mock"
+            ]
+          },
+          "base_url": {
+            "type": "string"
+          },
+          "api_key": {
+            "type": "string",
+            "pattern": "^(env|vault):[A-Z][A-Z0-9_]*$",
+            "description": "env:NAME or vault:NAME — never a literal"
+          },
+          "headers": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          }
         }
       }
     },
@@ -126,47 +292,123 @@
       "minItems": 1,
       "items": {
         "type": "object",
-        "required": ["id", "title", "harness", "reports_to", "tools", "budget"],
+        "required": [
+          "id",
+          "title",
+          "harness",
+          "reports_to",
+          "tools",
+          "budget"
+        ],
         "additionalProperties": false,
         "properties": {
-          "id": { "type": "string", "pattern": "^[a-z][a-z0-9_-]*$" },
-          "title": { "type": "string" },
-          "harness": { "type": "string", "enum": ["api", "agent-sdk"] },
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_-]*$"
+          },
+          "title": {
+            "type": "string"
+          },
+          "harness": {
+            "type": "string",
+            "enum": [
+              "api",
+              "agent-sdk"
+            ]
+          },
           "model": {
             "type": "string",
             "description": "anthropic/claude-opus-5 · openrouter/<vendor>/<model> · ollama/<model> · claude-code · mock. A bare claude-* id means anthropic."
           },
-          "effort": { "type": "string", "enum": ["low", "medium", "high", "xhigh", "max"], "default": "high" },
-          "reports_to": { "type": "string" },
+          "effort": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high",
+              "xhigh",
+              "max"
+            ],
+            "default": "high"
+          },
+          "reports_to": {
+            "type": "string"
+          },
           "tools": {
             "type": "array",
-            "items": { "type": "string", "pattern": "^[a-z][a-z0-9-]*((\\.[a-z][a-z0-9_-]*|\\.\\*)+|:[a-z][a-z0-9_-]*)$" }
+            "items": {
+              "type": "string",
+              "pattern": "^[a-z][a-z0-9-]*((\\.[a-z][a-z0-9_-]*|\\.\\*)+|:[a-z][a-z0-9_-]*)$"
+            }
           },
           "budget": {
             "type": "object",
-            "required": ["monthly"],
+            "required": [
+              "monthly"
+            ],
             "additionalProperties": false,
             "properties": {
-              "monthly": { "type": "integer", "minimum": 0 },
-              "per_tx": { "type": "integer", "minimum": 0 },
-              "rollover": { "type": "boolean", "default": true }
+              "monthly": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "per_tx": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "rollover": {
+                "type": "boolean",
+                "default": true
+              }
             }
           },
           "card": {
             "type": "object",
             "additionalProperties": false,
-            "properties": { "allowed_categories": { "type": "array", "items": { "type": "string" } } }
+            "properties": {
+              "allowed_categories": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
           },
-          "prompt": { "type": "string" },
-          "workspace": { "type": "boolean", "default": false },
-          "count": { "type": "integer", "minimum": 1, "maximum": 20, "default": 1 },
+          "prompt": {
+            "type": "string"
+          },
+          "workspace": {
+            "type": "boolean",
+            "default": false
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20,
+            "default": 1
+          },
           "escalate": {
             "type": "object",
-            "required": ["on", "to"],
+            "required": [
+              "on",
+              "to"
+            ],
             "additionalProperties": false,
-            "properties": { "on": { "type": "array", "items": { "type": "string" } }, "to": { "type": "string" } }
+            "properties": {
+              "on": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "to": {
+                "type": "string"
+              }
+            }
           },
-          "policies": { "$ref": "#/properties/policies" }
+          "policies": {
+            "$ref": "#/properties/policies"
+          }
         }
       }
     },
@@ -174,12 +416,26 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["id", "lead", "members"],
+        "required": [
+          "id",
+          "lead",
+          "members"
+        ],
         "additionalProperties": false,
         "properties": {
-          "id": { "type": "string" },
-          "lead": { "type": "string" },
-          "members": { "type": "array", "items": { "type": "string" }, "minItems": 1 }
+          "id": {
+            "type": "string"
+          },
+          "lead": {
+            "type": "string"
+          },
+          "members": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          }
         }
       }
     },
@@ -188,14 +444,33 @@
       "description": "Recurring missions. every: 1h | 6h | 1d | 1w, optional at HH:mm (company quiet-hours tz).",
       "items": {
         "type": "object",
-        "required": ["id", "every", "mission"],
+        "required": [
+          "id",
+          "every",
+          "mission"
+        ],
         "additionalProperties": false,
         "properties": {
-          "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
-          "every": { "type": "string", "pattern": "^\\d+(h|d|w)$" },
-          "at": { "type": "string", "pattern": "^\\d{2}:\\d{2}$" },
-          "mission": { "type": "string", "minLength": 10 },
-          "enabled": { "type": "boolean", "default": true }
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*$"
+          },
+          "every": {
+            "type": "string",
+            "pattern": "^\\d+(h|d|w)$"
+          },
+          "at": {
+            "type": "string",
+            "pattern": "^\\d{2}:\\d{2}$"
+          },
+          "mission": {
+            "type": "string",
+            "minLength": 10
+          },
+          "enabled": {
+            "type": "boolean",
+            "default": true
+          }
         }
       }
     },
@@ -203,9 +478,25 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "stt": { "type": "string", "enum": ["browser", "openai", "deepgram"] },
-        "tts": { "type": "string", "enum": ["browser", "openai", "elevenlabs"] },
-        "voice_id": { "type": "string" }
+        "stt": {
+          "type": "string",
+          "enum": [
+            "browser",
+            "openai",
+            "deepgram"
+          ]
+        },
+        "tts": {
+          "type": "string",
+          "enum": [
+            "browser",
+            "openai",
+            "elevenlabs"
+          ]
+        },
+        "voice_id": {
+          "type": "string"
+        }
       }
     },
     "integrations": {
@@ -214,32 +505,84 @@
         "oneOf": [
           {
             "type": "object",
-            "required": ["id"],
+            "required": [
+              "id"
+            ],
             "additionalProperties": false,
             "properties": {
-              "id": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
-              "modes": { "type": "array", "items": { "type": "string" } },
-              "side_effect": { "$ref": "#/$defs/sideEffect" }
+              "id": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]*$"
+              },
+              "modes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "side_effect": {
+                "$ref": "#/$defs/sideEffect"
+              }
             }
           },
           {
             "type": "object",
-            "required": ["mcp", "name", "side_effect"],
+            "required": [
+              "mcp",
+              "name",
+              "side_effect"
+            ],
             "additionalProperties": false,
             "properties": {
-              "mcp": { "type": "string" },
-              "name": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
-              "side_effect": { "$ref": "#/$defs/sideEffect" },
-              "overrides": { "type": "object", "additionalProperties": { "$ref": "#/$defs/sideEffect" } }
+              "mcp": {
+                "type": "string",
+                "description": "stdio command line or http(s) URL of the MCP server"
+              },
+              "name": {
+                "type": "string",
+                "pattern": "^[a-z][a-z0-9-]*$"
+              },
+              "side_effect": {
+                "$ref": "#/$defs/sideEffect"
+              },
+              "overrides": {
+                "type": "object",
+                "additionalProperties": {
+                  "$ref": "#/$defs/sideEffect"
+                }
+              },
+              "headers": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "description": "HTTP transport headers; vault:NAME is resolved"
+              },
+              "env": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                },
+                "description": "stdio environment; vault:NAME is resolved"
+              }
             }
           },
           {
             "type": "object",
-            "required": ["module"],
+            "required": [
+              "module"
+            ],
             "additionalProperties": false,
             "properties": {
-              "module": { "type": "string" },
-              "secrets": { "type": "array", "items": { "type": "string" } }
+              "module": {
+                "type": "string"
+              },
+              "secrets": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
             }
           }
         ]
@@ -247,7 +590,26 @@
     }
   },
   "$defs": {
-    "decision": { "type": "string", "enum": ["allow", "approve", "deny"] },
-    "sideEffect": { "type": "string", "enum": ["read", "write", "spend", "send", "publish", "deploy", "hire", "board"] }
+    "decision": {
+      "type": "string",
+      "enum": [
+        "allow",
+        "approve",
+        "deny"
+      ]
+    },
+    "sideEffect": {
+      "type": "string",
+      "enum": [
+        "read",
+        "write",
+        "spend",
+        "send",
+        "publish",
+        "deploy",
+        "hire",
+        "board"
+      ]
+    }
   }
 }

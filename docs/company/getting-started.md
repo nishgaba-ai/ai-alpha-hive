@@ -75,8 +75,12 @@ after editing `.env`.
 
 ## 6. Give a mission and decide
 
-**Overview → Give a mission** (or `/mission` on Telegram, or say it on the
-Voice screen). The executive plans; the team works; anything public, any
+Start with **Intake**: website, product, audience, goals, competitors,
+channels. It is saved as an artifact every agent reads, and the executive
+turns it into the first mission (brand brief, 90-day strategy, positioning,
+SEO audit, GEO probe, first drafts). After that, **Overview → Give a
+mission** (or `/mission` on Telegram, a voice note to the bot, or the Voice
+screen). The executive plans; the team works; anything public, any
 spend above the threshold, first contact, production deploys and hires
 land in your **Inbox**. Approve or deny with a note.
 
@@ -87,7 +91,15 @@ the humans and their tasks, and the schedules: automations, quiet hours,
 payroll and the monthly budget cycle. **Task tracker** holds agent and
 human tasks together. **Treasury** and **ERP** hold the money.
 
-## 8. Move machines
+## 8. Bring in the co-reviewer and interns
+
+**Access → Invite someone**: email, organisation role (viewer by default)
+and the company role (reviewer approves and starts missions; viewer only
+reads). Send them the link; when they register with it they land in your
+organisation with exactly that access. Owners see everything on every
+company; a reviewer or viewer sees only the companies they were granted.
+
+## 9. Move machines
 
 ```bash
 hive company export --group companies

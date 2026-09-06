@@ -54,6 +54,7 @@ export const TABLES = [
   "runs", "events", "approvals", "wallets", "ledger_entries", "cards",
   "artifacts", "messages", "secrets", "memory", "integrations_enabled", "contacts",
   "people", "payroll_runs", "payroll_items", "expenses", "time_entries", "cash_accounts", "cash_txns", "creators", "creator_events",
+  "invoices", "invoice_items", "webhook_events", "kv",
 ] as const;
 
 function migrate(d: DB) {
@@ -371,7 +372,68 @@ function migrate(d: DB) {
       memo TEXT
     );
     CREATE INDEX IF NOT EXISTS idx_creator_events ON creator_events(company_id, creator_id, ts);
+
+    -- invoices with Indian GST split (docs/company/erp.md)
+    CREATE TABLE IF NOT EXISTS invoices (
+      id TEXT PRIMARY KEY,
+      company_id TEXT NOT NULL,
+      number TEXT NOT NULL,
+      customer_name TEXT NOT NULL,
+      customer_email TEXT,
+      customer_gstin TEXT,
+      customer_state TEXT,
+      place_of_supply TEXT,
+      currency TEXT NOT NULL,
+      issued_on TEXT NOT NULL,
+      due_on TEXT,
+      subtotal_minor INTEGER NOT NULL DEFAULT 0,
+      cgst_minor INTEGER NOT NULL DEFAULT 0,
+      sgst_minor INTEGER NOT NULL DEFAULT 0,
+      igst_minor INTEGER NOT NULL DEFAULT 0,
+      total_minor INTEGER NOT NULL DEFAULT 0,
+      status TEXT NOT NULL DEFAULT 'draft',
+      notes TEXT,
+      payment_link TEXT,
+      paid_at INTEGER,
+      created_by TEXT,
+      created_at INTEGER NOT NULL,
+      UNIQUE (company_id, number)
+    );
+    CREATE TABLE IF NOT EXISTS invoice_items (
+      id TEXT PRIMARY KEY,
+      invoice_id TEXT NOT NULL REFERENCES invoices(id),
+      description TEXT NOT NULL,
+      hsn_sac TEXT,
+      quantity INTEGER NOT NULL DEFAULT 1,
+      unit_minor INTEGER NOT NULL,
+      gst_rate INTEGER NOT NULL DEFAULT 18,
+      amount_minor INTEGER NOT NULL
+    );
+    -- inbound webhooks (Stripe, Razorpay): idempotency + audit
+    CREATE TABLE IF NOT EXISTS webhook_events (
+      id TEXT PRIMARY KEY,
+      provider TEXT NOT NULL,
+      event_id TEXT NOT NULL,
+      type TEXT NOT NULL,
+      company_id TEXT,
+      received_at INTEGER NOT NULL,
+      outcome TEXT,
+      UNIQUE (provider, event_id)
+    );
+    -- small per-company key/value store (provider ids such as the Stripe cardholder)
+    CREATE TABLE IF NOT EXISTS kv (
+      company_id TEXT NOT NULL,
+      key TEXT NOT NULL,
+      value TEXT NOT NULL,
+      updated_at INTEGER NOT NULL,
+      PRIMARY KEY (company_id, key)
+    );
   `);
+  const expCols = (d.prepare("PRAGMA table_info(expenses)").all() as { name: string }[]).map((c) => c.name);
+  if (!expCols.includes("gst_minor")) d.exec("ALTER TABLE expenses ADD COLUMN gst_minor INTEGER NOT NULL DEFAULT 0");
+  if (!expCols.includes("vendor_gstin")) d.exec("ALTER TABLE expenses ADD COLUMN vendor_gstin TEXT");
+  const cardCols = (d.prepare("PRAGMA table_info(cards)").all() as { name: string }[]).map((c) => c.name);
+  if (!cardCols.includes("agent_id")) d.exec("ALTER TABLE cards ADD COLUMN agent_id TEXT");
   const cols = (d.prepare("PRAGMA table_info(tasks)").all() as { name: string }[]).map((c) => c.name);
   if (!cols.includes("assignee_person_id")) d.exec("ALTER TABLE tasks ADD COLUMN assignee_person_id TEXT");
   if (!cols.includes("due_at")) d.exec("ALTER TABLE tasks ADD COLUMN due_at INTEGER");

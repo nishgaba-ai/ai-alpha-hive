@@ -51,46 +51,51 @@ last month stays unless the role sets `rollover: false`.
 ## Cards (Stripe Issuing)
 
 One virtual card per agent wallet that needs to buy things (API credits,
-domains, ad spend, SaaS). Created by the worker with controls that mirror
-the ledger:
+domains, ad spend, SaaS). `runtime/src/cards/` holds the provider contract
+and the Stripe Issuing implementation; the ledger stays the source of truth.
 
-```ts
-stripe.issuing.cards.create({
-  cardholder,                       // the company's cardholder, board-verified
-  currency, type: "virtual",
-  spending_controls: {
-    spending_limits: [
-      { amount: role.budget.per_tx,   interval: "per_authorization" },
-      { amount: role.budget.monthly,  interval: "monthly" },
-    ],
-    allowed_categories: role.card?.allowed_categories,   // e.g. computer_software_stores, advertising_services
-    blocked_categories: ["cash_advance", "wire_transfer", "gambling"],
-  },
-  metadata: { company_id, agent_id, wallet_id },
-});
-```
+**Flow.** An agent calls `card.request` (class `hire`, always parks). The
+board approves it in the Inbox. The handler then records the card and calls
+the provider: `POST /v1/issuing/cards` with `type: virtual`, the company's
+cardholder, and `spending_controls` mirrored from the request
+(per-authorization and monthly limits, allowed categories). The card row
+carries `provider_card_id` and `last4`; the number stays with Stripe.
+Retry or freeze from **Treasury → Cards**.
 
-**Authorization webhook (`issuing_authorization.request`):** Stripe holds
-the transaction until we answer. The worker's webhook endpoint (on the web
-app, forwarded to the worker via the DB) checks: wallet available ≥ amount,
-merchant not on the company's block list, policy threshold. It approves or
-declines within Stripe's window; on decline it raises an approval so the
-board can allow that merchant going forward. Every decision is an event and
-a ledger hold.
+**Vault secrets (per company):** `STRIPE_SECRET_KEY`,
+`STRIPE_CARDHOLDER_ID` (the board creates the cardholder once in the Stripe
+dashboard: legal name, address, KYC — the runtime never collects personal
+details), `STRIPE_WEBHOOK_SECRET`. Set `treasury.card_provider:
+stripe-issuing` in company.yaml.
 
-**Board-only card actions** (`sideEffect: board`): create cardholder, fund
-balance, raise any limit, unfreeze. Agents can call `card.request` (approval
-by default) and `card.freeze` on their own card (allowed).
+**Authorization webhook** `POST /api/webhooks/stripe/<slug>` (signature
+verified, idempotent on event id). For `issuing_authorization.request`
+the worker answers synchronously from the ledger:
+
+1. card exists and is `active`; currency matches the company
+2. amount ≤ the card's per-transaction control
+3. merchant passes `policies.spend.merchants` (block list, allow list)
+4. month-to-date spend + amount ≤ the monthly control
+5. wallet available ≥ amount → **hold** placed under `auth:<authorization id>`
+
+Approved → `{ approved: true }`; otherwise `{ approved: false }` and a
+`card.declined` event the board sees. `issuing_transaction.created`
+captures the hold (or posts the spend when no hold exists);
+`issuing_authorization.updated` with a reversal releases it. Stripe retries
+are answered from the recorded outcome.
+
+**Board-only card actions:** create the cardholder, fund the Issuing
+balance, raise any limit. Agents can `card.request` (parks), `card.freeze`
+their own card (allowed) and read `card.transactions` (ledger + provider).
 
 ### India
 
 Stripe Issuing is not generally available in India. INR companies run
 **ledger-only**: budgets and spend are tracked and gated identically, but
-payment happens through a board-held instrument the board uses when an
-approval arrives, or through Razorpay-collected revenue. The policy layer,
-approvals inbox and reports are the same; only the `card.*` family is off.
-When a card provider becomes available for INR, the company flips
-`treasury.card_provider` and nothing else changes.
+payment happens through a board-held instrument when an approval arrives,
+or through Razorpay-collected revenue. When a card provider becomes
+available for INR, the company flips `treasury.card_provider` and nothing
+else changes.
 
 ## Spend policy
 
@@ -116,10 +121,20 @@ Order of checks in the gate for any `spend` tool call:
 
 ## Revenue
 
-Sales roles get `payment-link.create` (Razorpay Payment Links for INR,
-Stripe Checkout for others) with `sideEffect: send` when delivered to a
-prospect. Webhooks post receipts to `revenue`. Agents never touch payouts,
-refunds above threshold, or account settings — those are `board`.
+Sales and finance roles get `payment-link.create` (Razorpay Payment Links
+for INR, Stripe Checkout for others) and `invoice.create` / `invoice.send`
+(GST-split invoices, see erp.md). Two webhooks post receipts:
+
+- `POST /api/webhooks/stripe/<slug>` — `checkout.session.completed` with
+  `payment_status: paid` posts `cash ← revenue` and marks the invoice whose
+  `payment_link` matches as paid.
+- `POST /api/webhooks/razorpay/<slug>` — `payment_link.paid` /
+  `payment.captured`, verified with `RAZORPAY_WEBHOOK_SECRET` from the vault.
+
+Both are exempt from the bearer token (the signature is the auth), recorded
+once in `webhook_events`, and visible under **Treasury → Webhooks received**.
+Agents never touch payouts, refunds above threshold, or account settings —
+those are `board`.
 
 ## Reports
 

@@ -1,6 +1,6 @@
 import { hive, hiveOr, money, sentence, type CompanySummary, type Task } from "../../../../lib/hive";
 import { Card, Label, Badge, PageTitle, Empty } from "../../../../components/ui";
-import { addPerson, draftPayroll, payrollAction, submitExpense, expenseAction, logTime, addCashAccount, addCashTxn } from "./actions";
+import { addPerson, draftPayroll, payrollAction, submitExpense, expenseAction, logTime, addCashAccount, addCashTxn, createInvoice, invoiceStatus, importBank } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -10,9 +10,9 @@ type Expense = { id: string; person_id: string | null; agent_id: string | null; 
 type TimeEntry = { id: string; person_id: string; task_id: string | null; date: string; minutes: number; note: string | null };
 type Cash = { accounts: { id: string; name: string; kind: string; balance_minor: number }[]; txns: { id: string; account_id: string; ts: number; amount_minor: number; counterparty: string | null; category: string; memo: string | null }[] };
 
-export default async function ErpPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ tab?: string; period?: string }> }) {
+export default async function ErpPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ tab?: string; period?: string; msg?: string }> }) {
   const { slug } = await params;
-  const { tab = "people", period = new Date().toISOString().slice(0, 7) } = await searchParams;
+  const { tab = "people", period = new Date().toISOString().slice(0, 7), msg } = await searchParams;
   const [c, people, payroll, expenses, time, cash, tasks] = await Promise.all([
     hive<CompanySummary>(`/api/companies/${slug}`),
     hiveOr<Person[]>(`/api/companies/${slug}/erp/people`, []),
@@ -25,7 +25,7 @@ export default async function ErpPage({ params, searchParams }: { params: Promis
   const cur = c.currency;
   const pName = new Map(people.map((p) => [p.id, p.name]));
   const aName = new Map(cash.accounts.map((a) => [a.id, a.name]));
-  const tabs = ["people", "payroll", "expenses", "time", "cash", "statements"];
+  const tabs = ["people", "payroll", "expenses", "time", "cash", "invoices", "gst", "import", "statements"];
   const cashTotal = cash.accounts.reduce((s, a) => s + a.balance_minor, 0);
   const salaryBill = people.filter((p) => p.status === "active").reduce((s, p) => s + p.monthly_salary_minor, 0);
 
@@ -198,6 +198,10 @@ export default async function ErpPage({ params, searchParams }: { params: Promis
         </div>
       ) : null}
 
+      {msg ? <Card className="mb-4"><p className="text-sm">{msg}</p></Card> : null}
+      {tab === "invoices" ? <Invoices slug={slug} cur={cur} /> : null}
+      {tab === "gst" ? <Gst slug={slug} period={period} cur={cur} /> : null}
+      {tab === "import" ? <BankImport slug={slug} accounts={cash.accounts} /> : null}
       {tab === "statements" ? <Statements slug={slug} period={period} cur={cur} /> : null}
     </main>
   );
@@ -232,6 +236,116 @@ async function Statements({ slug, period, cur }: { slug: string; period: string;
         </Card>
       </div>
       <p className="text-xs text-[var(--muted)]">Surabhi can pull the same statement on Telegram with <code className="font-mono text-[var(--brass)]">/statement {period}</code> once the Telegram integration is enabled.</p>
+    </div>
+  );
+}
+
+type Invoice = { id: string; number: string; customer_name: string; customer_email: string | null; place_of_supply: string | null; currency: string; issued_on: string; due_on: string | null; subtotal_minor: number; cgst_minor: number; sgst_minor: number; igst_minor: number; total_minor: number; status: string; payment_link: string | null; items?: { id: string; description: string; quantity: number; unit_minor: number; gst_rate: number; amount_minor: number }[] };
+
+async function Invoices({ slug, cur }: { slug: string; cur: string }) {
+  const list = await hiveOr<Invoice[]>(`/api/companies/${slug}/erp/invoices`, []);
+  const tone = (s: string) => (s === "paid" ? "live" : s === "sent" ? "parked" : s === "void" ? "failed" : "muted");
+  return (
+    <div className="grid gap-5 lg:grid-cols-[1fr_380px]">
+      <Card>
+        {list.length === 0 ? <Empty>No invoices yet. Agents in the finance role can draft them too (invoice.create).</Empty> : null}
+        <div className="space-y-2">
+          {list.map((i) => (
+            <div key={i.id} className="rounded-[var(--r-2)] border border-[var(--hairline)] p-3 text-sm">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div><span className="font-mono text-xs text-[var(--muted)]">{i.number}</span> <span className="ml-2 font-medium">{i.customer_name}</span> <span className="ml-2 text-xs text-[var(--muted)]">{i.issued_on}{i.due_on ? ` · due ${i.due_on}` : ""}</span></div>
+                <div className="flex items-center gap-2"><Badge tone={tone(i.status)}>{i.status}</Badge><span className="tabular-nums font-medium">{money(i.total_minor, i.currency)}</span></div>
+              </div>
+              <p className="mt-1 text-xs text-[var(--muted)]">{(i.items ?? []).map((it) => `${it.description} × ${it.quantity}`).join(" · ")} · GST {money(i.cgst_minor + i.sgst_minor + i.igst_minor, i.currency)}{i.igst_minor ? " (IGST)" : i.cgst_minor ? " (CGST+SGST)" : ""}</p>
+              <div className="mt-2 flex flex-wrap items-center gap-1">
+                <a href={`/api/hive/companies/${slug}/erp/invoices/${i.id}/html`} target="_blank" rel="noreferrer" className="btn btn-ghost py-0.5 text-xs">Print</a>
+                {i.payment_link ? <a href={i.payment_link} target="_blank" rel="noreferrer" className="btn btn-ghost py-0.5 text-xs">Payment link</a> : null}
+                <form action={invoiceStatus} className="flex items-center gap-1">
+                  <input type="hidden" name="slug" value={slug} /><input type="hidden" name="id" value={i.id} />
+                  {i.status === "draft" ? <><input name="payment_link" className="field w-44 py-0.5 text-xs" placeholder="Payment link (optional)" /><button name="status" value="sent" className="btn btn-ghost py-0.5 text-xs">Mark sent</button></> : null}
+                  {i.status === "sent" ? <button name="status" value="paid" className="btn btn-ghost py-0.5 text-xs">Mark paid</button> : null}
+                  {i.status !== "void" && i.status !== "paid" ? <button name="status" value="void" className="btn btn-ghost py-0.5 text-xs">Void</button> : null}
+                </form>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Card>
+      <Card className="h-fit">
+        <Label className="mb-2">New invoice</Label>
+        <form action={createInvoice} className="space-y-2 text-sm">
+          <input type="hidden" name="slug" value={slug} />
+          <input name="customer_name" className="field" placeholder="Customer" required />
+          <input name="customer_email" className="field" placeholder="Customer email" type="email" />
+          <div className="grid grid-cols-2 gap-2"><input name="customer_gstin" className="field" placeholder="Customer GSTIN" /><input name="place_of_supply" className="field" placeholder="State code (GJ)" maxLength={2} /></div>
+          <input name="due_on" className="field" placeholder="Due YYYY-MM-DD" />
+          <Label className="mt-2">Lines</Label>
+          {[0, 1, 2].map((n) => (
+            <div key={n} className="grid grid-cols-[1fr_52px_84px_52px] gap-1">
+              <input name={`item_desc_${n}`} className="field" placeholder={n === 0 ? "Description" : "…"} required={n === 0} />
+              <input name={`item_qty_${n}`} className="field" placeholder="Qty" defaultValue={1} inputMode="numeric" />
+              <input name={`item_unit_${n}`} className="field" placeholder={`Rate ${cur}`} inputMode="decimal" />
+              <input name={`item_gst_${n}`} className="field" placeholder="GST%" defaultValue={18} inputMode="numeric" />
+            </div>
+          ))}
+          <textarea name="notes" className="field min-h-[56px]" placeholder="Notes on the invoice" />
+          <button className="btn btn-primary w-full justify-center" type="submit">Create draft</button>
+          <p className="text-xs text-[var(--muted)]">Same state as treasury.gst_state → CGST + SGST; otherwise IGST. Exports carry no GST.</p>
+        </form>
+      </Card>
+    </div>
+  );
+}
+
+async function Gst({ slug, period, cur }: { slug: string; period: string; cur: string }) {
+  type G = { period: string; invoices: number; output: { taxable_minor: number; cgst_minor: number; sgst_minor: number; igst_minor: number }; input_credit_minor: number; expenses_with_gst: number; net_payable_minor: number; carry_forward_minor: number; note: string };
+  const g = await hiveOr<G | null>(`/api/companies/${slug}/erp/gst/${period}`, null);
+  const months = Array.from({ length: 6 }, (_, i) => { const d = new Date(); d.setMonth(d.getMonth() - i); return d.toISOString().slice(0, 7); });
+  if (!g) return <Card><Empty>Worker unavailable.</Empty></Card>;
+  const output = g.output.cgst_minor + g.output.sgst_minor + g.output.igst_minor;
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-2">{months.map((m) => <a key={m} href={`/c/${slug}/erp?tab=gst&period=${m}`} className={`btn ${m === period ? "btn-glass" : "btn-ghost"}`}>{m}</a>)}</div>
+      <div className="grid gap-4 sm:grid-cols-4">
+        <Card><Label>Taxable sales</Label><p className="mt-1 text-xl tabular-nums">{money(g.output.taxable_minor, cur)}</p><p className="text-xs text-[var(--muted)]">{g.invoices} invoices sent or paid</p></Card>
+        <Card><Label>Output tax</Label><p className="mt-1 text-xl tabular-nums">{money(output, cur)}</p><p className="text-xs text-[var(--muted)]">CGST {money(g.output.cgst_minor, cur)} · SGST {money(g.output.sgst_minor, cur)} · IGST {money(g.output.igst_minor, cur)}</p></Card>
+        <Card><Label>Input credit</Label><p className="mt-1 text-xl tabular-nums">{money(g.input_credit_minor, cur)}</p><p className="text-xs text-[var(--muted)]">{g.expenses_with_gst} expenses with GST</p></Card>
+        <Card><Label>Net payable</Label><p className={`mt-1 text-xl tabular-nums ${g.net_payable_minor ? "text-[var(--parked)]" : "text-[var(--live)]"}`}>{money(g.net_payable_minor, cur)}</p><p className="text-xs text-[var(--muted)]">{g.carry_forward_minor ? `carry forward ${money(g.carry_forward_minor, cur)}` : "nothing to carry forward"}</p></Card>
+      </div>
+      <p className="text-xs text-[var(--muted)]">{g.note} Record the GST amount on each expense (Expenses tab) so the credit side is complete.</p>
+    </div>
+  );
+}
+
+function BankImport({ slug, accounts }: { slug: string; accounts: { id: string; name: string; kind: string }[] }) {
+  const presets = ["hdfc", "icici", "sbi", "kotak", "razorpayx", "generic"];
+  return (
+    <div className="grid gap-5 lg:grid-cols-[420px_1fr]">
+      <Card>
+        <Label className="mb-2">Import a bank statement (CSV)</Label>
+        {accounts.length === 0 ? <Empty>Add a cash account first (Cash tab).</Empty> : (
+          <form action={importBank} className="space-y-2 text-sm">
+            <input type="hidden" name="slug" value={slug} />
+            <select name="account_id" className="field">{accounts.map((a) => <option key={a.id} value={a.id}>{a.name} · {a.kind}</option>)}</select>
+            <select name="preset" className="field" defaultValue="hdfc">{presets.map((p) => <option key={p} value={p}>{p.toUpperCase()}</option>)}</select>
+            <input type="file" name="file" accept=".csv,text/csv" className="field" />
+            <textarea name="csv" className="field min-h-[80px] font-mono text-xs" placeholder="…or paste CSV rows here" />
+            <div className="flex gap-2">
+              <button className="btn btn-ghost" type="submit" name="dry_run" value="yes">Preview</button>
+              <button className="btn btn-primary" type="submit" name="dry_run" value="no">Import</button>
+            </div>
+          </form>
+        )}
+      </Card>
+      <Card>
+        <Label className="mb-2">How it works</Label>
+        <ul className="list-disc space-y-1 pl-4 text-sm text-[var(--ink-2)]">
+          <li>Presets know the column names HDFC, ICICI, SBI, Kotak and RazorpayX export; Generic expects date, description, reference, amount.</li>
+          <li>Rows are deduplicated on account + date + amount + reference, so re-importing an overlapping statement is safe.</li>
+          <li>Categories are guessed from the narration (salary, software, tax, revenue…); edit them in the Cash tab.</li>
+          <li>Preview shows counts without writing anything.</li>
+        </ul>
+      </Card>
     </div>
   );
 }

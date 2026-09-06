@@ -245,7 +245,7 @@ export const TOOLS: ToolSpec[] = [
   },
   {
     name: "card.request",
-    description: "Request a virtual card with limits. Parks for the board; the worker issues it with spending controls.",
+    description: "Request a virtual card with limits. Parks for the board; once approved the worker issues it with the provider (Stripe Issuing) and spending controls.",
     sideEffect: "hire",
     alwaysApprove: true,
     input: strict({
@@ -272,6 +272,29 @@ export const TOOLS: ToolSpec[] = [
     description: "List card transactions for a period.",
     sideEffect: "read",
     input: strict({ period: { type: "string" } }),
+  },
+  {
+    name: "invoice.create",
+    description: "Draft a tax invoice (GST split computed from the company state and the customer's place of supply). Finance role.",
+    sideEffect: "write",
+    input: strict(
+      {
+        customer_name: { type: "string" },
+        customer_email: { type: "string" },
+        customer_gstin: { type: "string" },
+        place_of_supply: { type: "string", description: "Two-letter state code, e.g. GJ" },
+        due_on: { type: "string", description: "YYYY-MM-DD" },
+        notes: { type: "string" },
+        items: { type: "array", items: { type: "object", properties: { description: { type: "string" }, hsn_sac: { type: "string" }, quantity: { type: "integer" }, unit_minor: { type: "integer" }, gst_rate: { type: "integer" } }, required: ["description", "unit_minor"] } },
+      },
+      ["customer_name", "items"],
+    ),
+  },
+  {
+    name: "invoice.send",
+    description: "Mark an invoice sent, attach a payment link, and email it to the customer. Send-gated like any first contact.",
+    sideEffect: "send",
+    input: strict({ invoice_id: { type: "string" }, ...reason }),
   },
   {
     name: "payment-link.create",
@@ -322,21 +345,21 @@ export const TOOLS: ToolSpec[] = [
   },
   {
     name: "infra.domain.search",
-    description: "Check domain availability and price.",
+    description: "Check domain availability (RDAP) and first-year price (registrar list price).",
     sideEffect: "read",
     input: strict({ name: { type: "string" } }),
   },
   {
     name: "infra.domain.buy",
-    description: "Buy a domain. Spend-gated.",
+    description: "Buy a domain through the registrar in the vault (Porkbun) or hand it to the board. Spend-gated.",
     sideEffect: "spend",
     input: strict({ name: { type: "string" }, years: { type: "integer", minimum: 1 }, ...reason }),
   },
   {
     name: "infra.dns.set",
-    description: "Set a DNS record on a company domain.",
+    description: "Upsert a DNS record on a company domain (Cloudflare token in the vault).",
     sideEffect: "write",
-    input: strict({ domain: { type: "string" }, record: { type: "object", additionalProperties: true } }),
+    input: strict({ domain: { type: "string" }, record: { type: "object", properties: { type: { type: "string", enum: ["A", "AAAA", "CNAME", "TXT", "MX"] }, name: { type: "string" }, content: { type: "string" }, ttl: { type: "integer" }, proxied: { type: "boolean" }, priority: { type: "integer" } }, required: ["type", "name", "content"], additionalProperties: false } }),
   },
   {
     name: "github.pr.open",

@@ -62,6 +62,7 @@ export default async function IntegrationsPage({ params, searchParams }: { param
   const { slug } = await params;
   const { open, msg } = await searchParams;
   const list = await hiveOr<Integration[]>(`/api/companies/${slug}/integrations`, []);
+  const mcp = await hiveOr<{ name: string; transport: string; side_effect: string; connected: boolean; error: string | null; tools: { name: string; side_effect: string }[] }[]>(`/api/companies/${slug}/mcp`, []);
   return (
     <main>
       <PageTitle eyebrow="The library" title="Integrations" />
@@ -144,6 +145,41 @@ export default async function IntegrationsPage({ params, searchParams }: { param
           );
         })}
       </div>
+      <Card className="mt-6">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <Label>MCP servers</Label>
+          <span className="text-xs text-[var(--muted)]">any MCP server becomes an integration; every tool still passes the gate</span>
+        </div>
+        {mcp.length === 0 ? (
+          <p className="mt-2 text-sm text-[var(--ink-2)]">None attached. In Settings add, for example:</p>
+        ) : null}
+        {mcp.length === 0 ? (
+          <pre className="mt-2 overflow-x-auto rounded-[var(--r-1)] bg-[var(--surface-0)] p-3 font-mono text-xs text-[var(--ink-2)]">{`integrations:
+  - mcp: "npx -y @modelcontextprotocol/server-filesystem ./workspace"
+    name: files
+    side_effect: write
+    overrides: { read_file: read, list_directory: read }
+  - mcp: "https://mcp.example.com/mcp"
+    name: crm
+    side_effect: send
+    headers: { Authorization: "Bearer vault:CRM_TOKEN" }`}</pre>
+        ) : null}
+        <div className="mt-3 space-y-2">
+          {mcp.map((m) => (
+            <div key={m.name} className="rounded-[var(--r-2)] border border-[var(--hairline)] p-3 text-sm">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-medium">{m.name}</span>
+                <Badge tone="muted">{m.transport}</Badge>
+                <Badge tone={sideEffectTone(m.side_effect)}>{m.side_effect}</Badge>
+                <Badge tone={m.connected ? "live" : "failed"}>{m.connected ? `${m.tools.length} tools` : "not connected"}</Badge>
+                {m.error ? <span className="text-xs text-[var(--failed)]">{m.error}</span> : null}
+              </div>
+              {m.tools.length ? <p className="mt-1 text-xs text-[var(--muted)]">{m.tools.map((t) => `${t.name} (${t.side_effect})`).join(" · ")}</p> : null}
+              <p className="mt-1 text-xs text-[var(--muted)]">Grant to roles as <code className="font-mono">{m.name}.*</code> or <code className="font-mono">{m.name}.&lt;tool&gt;</code>.</p>
+            </div>
+          ))}
+        </div>
+      </Card>
       <Card className="mt-6">
         <Label className="mb-1">Build your own</Label>
         <p className="text-sm text-[var(--ink-2)]">Add a folder under <code className="font-mono text-[var(--accent)]">runtime/integrations/&lt;id&gt;/</code> exporting <code className="font-mono">defineIntegration</code> with modes, methods, secrets and an <code className="font-mono">auth</code> declaration (API key or OAuth 2.0), list it in the index, and it appears here with the right form. Guide: <code className="font-mono">docs/company/integrations.md</code>.</p>

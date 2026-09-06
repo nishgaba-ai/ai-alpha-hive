@@ -60,10 +60,15 @@ export type IntegrationEnable = {
 };
 
 export type McpEnable = {
+  /** stdio command line ("npx -y @scope/server …") or an http(s) URL (Streamable HTTP) */
   mcp: string;
   name: string;
   side_effect: SideEffect;
   overrides?: Record<string, SideEffect>;
+  /** http transport headers; "vault:NAME" is resolved from the vault */
+  headers?: Record<string, string>;
+  /** stdio environment; "vault:NAME" is resolved from the vault */
+  env?: Record<string, string>;
 };
 
 export type CompanyConfig = {
@@ -81,6 +86,11 @@ export type CompanyConfig = {
     approval_threshold: number;
     reserve?: number;
     card_provider?: "none" | "stripe-issuing";
+    /** GST: two-letter state code decides CGST+SGST vs IGST on invoices */
+    gst_state?: string;
+    gstin?: string;
+    invoice_prefix?: string;
+    address?: string;
   };
   policies: Policies;
   providers?: { default?: string } & Record<string, ProviderConfig | string | undefined>;

@@ -367,30 +367,38 @@ referenced as `env:NAME` or `vault:NAME`, never literal.
   shape (website intake, strategy docs, SEO/GEO/social/influencer roles in
   parallel), all inside the AI CMO template.
 
-## 13. What is built and what is not (2026-09-06)
+## 13. What is built and what is not (2026-09-07)
 
-**Built and exercised on the mock provider end to end:** company loader
-and validation; scheduler; gate with holds; ledger; vault with
-redaction; API + SSE; approvals resume; ERP flows; export bundle; CLI;
-`hive company` in the Go binary; MCP server; Telegram bridge (code path;
-needs a bot to exercise); all UI screens against live data.
+**Built and exercised end to end (mock provider, unit tests):** company
+loader and validation; scheduler; gate with holds; ledger; vault with
+redaction; API + SSE; approvals resume for both harnesses (Claude Code
+resumes its SDK session on the board's decision); ERP flows including
+invoices with the GST split, the monthly GST summary, bank CSV import with
+dedupe, the group statement; cards: request → approve → issue, real-time
+authorization answered from the ledger, settlement, reversal; Stripe and
+Razorpay webhooks with signature checks and idempotency; export → import
+on a fresh database (round trip covered by a test); CLI; `hive company` in
+the Go binary; MCP server; MCP client bridge; Telegram bridge with voice
+notes; website intake; per-company access (owner / reviewer / viewer) with
+invites; template gallery with org-chart previews; all UI screens against
+live data.
 
 **Built, not yet exercised against the real service (needs keys or
-accounts):** Anthropic provider (fallbacks beta with a plain retry),
-OpenRouter and Ollama providers, the Claude Code harness (needs a Claude
-Code login on the worker), every integration's API calls (LinkedIn,
-Postmark, Slack, GA4, Search Console, Meta), server STT/TTS.
+accounts):** Anthropic provider (the live key's account needs credits),
+OpenRouter and Ollama providers, the Claude Code harness on the worker,
+every integration's API calls, Stripe Issuing, Cloudflare DNS, Porkbun
+registration, server STT/TTS, attaching a real MCP server.
 
-**Designed, not built:** Stripe Issuing cards and the authorization
-webhook (ledger-only mode runs today); registrar/DNS modules; the MCP
-client bridge (attach any MCP server as an integration); bank CSV
-import; group statement; per-company platform permissions; Telegram
-voice notes; Vercel deployment of the UI with libSQL.
+**Designed, not built:** Vercel hosting of the UI (the web app keeps
+users, sessions and audit in SQLite; Vercel needs a hosted database —
+see docs/company/deploy.md); TDS and the quarterly pack; inter-company
+transfers; emailing invite links (the owner copies the link today);
+WhatsApp, Google Drive and Notion integrations.
 
-**Known limits:** a parked Claude Code run cannot resume mid-session
-(the approval is recorded; a fresh run continues after the decision);
-inference cost is converted to INR at a fixed rate for visibility; the
-board assistant on the mock provider answers with a canned status line.
+**Known limits:** inference cost is converted to INR at a fixed rate for
+visibility; the board assistant on the mock provider answers with a canned
+status line; a Claude Code approval honoured once is remembered in memory,
+so a worker restart could honour it a second time on the same run.
 
 ## 12. Open decisions for the board
 

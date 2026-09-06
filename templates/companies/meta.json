@@ -1,0 +1,68 @@
+{
+  "startup": {
+    "accent": "#6c5ce7",
+    "icon": "🚀",
+    "tagline": "Ship a product through gates",
+    "highlights": [
+      "CEO turns the mission into a small task DAG with acceptance criteria",
+      "Engineer ships to preview through hive; production waits for your approval",
+      "Marketer drafts a week of content in one batch; finance closes the week"
+    ],
+    "best_for": "A solo founder with a repo and one outcome to hit this quarter"
+  },
+  "cmo": {
+    "accent": "#ff7eb3",
+    "icon": "📣",
+    "tagline": "Marketing as a company, starting from your website",
+    "highlights": [
+      "Strategist reads the site and writes the brand brief, content plan and positioning map",
+      "SEO, GEO, social and two writers run in parallel; paid media is gated twice",
+      "Analyst closes every week with cost per outcome by channel"
+    ],
+    "best_for": "A product with a live site that needs a whole marketing team, not one freelancer"
+  },
+  "ugc-growth": {
+    "accent": "#ff9f43",
+    "icon": "🎬",
+    "tagline": "Creators on commission, one video a day",
+    "highlights": [
+      "Format tester scripts one thirty-second clip a day until one converts",
+      "Recruiters sign creators on 30% lifetime commission once the signal lands",
+      "Creator ops sends the kit, checks the first three videos, keeps payouts honest"
+    ],
+    "best_for": "A consumer product that wants creator content without an ad budget"
+  },
+  "trading-research": {
+    "accent": "#16b981",
+    "icon": "📈",
+    "tagline": "A research desk that never trades",
+    "highlights": [
+      "Quants backtest every idea out-of-sample and save the exact rules",
+      "Risk signs off or blocks; nothing reaches the note without it",
+      "Writer sends the morning note with three ranked ideas before 09:00 IST"
+    ],
+    "best_for": "An investor who wants ranked, audited ideas and keeps the broker to themselves"
+  },
+  "real-estate": {
+    "accent": "#0ea5e9",
+    "icon": "🏠",
+    "tagline": "Pipeline, outreach and deals you sign",
+    "highlights": [
+      "Researcher sources listings and comparables with cited sources",
+      "Sales qualifies buyers and follows up; every first contact parks for you",
+      "Marketer runs the brand and lead ads inside a per-transaction cap"
+    ],
+    "best_for": "A broker or advisory that wants a qualified pipeline and a brief before every site visit"
+  },
+  "waste-management": {
+    "accent": "#14b8a6",
+    "icon": "♻️",
+    "tagline": "Market entry with the paperwork right",
+    "highlights": [
+      "Researcher tracks tenders, regulation and municipal budgets from official sources",
+      "Ops planner costs routes, vehicles, vendors and staffing per opportunity",
+      "Compliance builds the licence file and blocks any claim it cannot support"
+    ],
+    "best_for": "An operator entering Indian waste contracts who needs to find, cost and document before hiring"
+  }
+}

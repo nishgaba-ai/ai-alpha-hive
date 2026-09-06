@@ -3,21 +3,15 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import YAML from "yaml";
-import { getSession } from "../../../../lib/auth";
-import { assertCan } from "../../../../lib/rbac";
+import { requireCompany } from "../../../../lib/company-access";
 import { audit } from "../../../../lib/audit";
 import { hive } from "../../../../lib/hive";
 
-async function admin() {
-  const session = await getSession();
-  if (!session) redirect("/login");
-  assertCan(session, "member:role:set"); // owner/admin only: secrets and config
-  return session;
-}
+// Secrets and integration toggles are company:secrets (owner only).
 
 export async function storeSecret(form: FormData) {
-  const session = await admin();
   const slug = String(form.get("slug"));
+  const session = await requireCompany(slug, "company:secrets");
   const name = String(form.get("name"));
   const value = String(form.get("value") ?? "");
   const id = String(form.get("id") ?? "");
@@ -33,8 +27,8 @@ export async function storeSecret(form: FormData) {
 }
 
 export async function enableIntegration(form: FormData) {
-  const session = await admin();
   const slug = String(form.get("slug"));
+  const session = await requireCompany(slug, "company:secrets");
   const id = String(form.get("id"));
   const modes = form.getAll("modes").map(String);
   const current = await hive<{ yaml: string }>(`/api/companies/${slug}`);
@@ -58,16 +52,16 @@ export async function enableIntegration(form: FormData) {
 }
 
 export async function checkIntegration(form: FormData) {
-  await admin();
   const slug = String(form.get("slug"));
+  await requireCompany(slug, "company:secrets");
   const id = String(form.get("id"));
   const r = await hive<{ ok: boolean; detail: string }>(`/api/companies/${slug}/integrations/${id}/health`, { method: "POST" });
   redirect(`/c/${slug}/integrations?open=${id}&msg=${encodeURIComponent(`${id}: ${r.ok ? "ok" : "failed"} — ${r.detail}`)}`);
 }
 
 export async function connectIntegration(form: FormData) {
-  const session = await admin();
   const slug = String(form.get("slug"));
+  const session = await requireCompany(slug, "company:secrets");
   const id = String(form.get("id"));
   let url: string;
   try {

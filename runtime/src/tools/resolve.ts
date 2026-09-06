@@ -4,7 +4,8 @@
 import { TOOLS } from "../../tools/manifest.js";
 import { INTEGRATIONS, integrationById } from "../../integrations/index.js";
 import { toolsFor } from "../integrations/registry.js";
-import { expandPatterns, isIntegrationEnable } from "../loader.js";
+import { expandPatterns, isIntegrationEnable, isMcpEnable, companyIdFor } from "../loader.js";
+import { bridgedTools } from "../integrations/mcp-bridge.js";
 import { coreHandlers } from "./core.js";
 import type { CompanyConfig, ResolvedTool, RoleConfig } from "../types.js";
 import type { ToolDef } from "../providers/types.js";
@@ -20,7 +21,7 @@ export type ToolSet = {
   allowedNames: Set<string>;
 };
 
-export function allTools(config: CompanyConfig): ResolvedTool[] {
+export function allTools(config: CompanyConfig, companyId?: string): ResolvedTool[] {
   const out: ResolvedTool[] = TOOLS.map((spec) => ({
     spec,
     handler: coreHandlers[spec.name] ?? (async () => ({ ok: false, error: { code: "unimplemented", hint: `${spec.name} has no handler yet` } })),
@@ -31,15 +32,17 @@ export function allTools(config: CompanyConfig): ResolvedTool[] {
     if (!i) continue;
     out.push(...toolsFor(i, en.modes ?? i.modes.map((m) => m.id), en.side_effect));
   }
+  const mcp = (config.integrations ?? []).filter(isMcpEnable);
+  if (mcp.length) out.push(...bridgedTools(companyId ?? companyIdFor(config), mcp));
   return out;
 }
 
-export function toolsForRole(config: CompanyConfig, role: RoleConfig): ToolSet {
+export function toolsForRole(config: CompanyConfig, role: RoleConfig, companyId?: string): ToolSet {
   const { names } = expandPatterns(role.tools, config);
   const allowed = new Set(names);
   const byName = new Map<string, ResolvedTool>();
   const byWire = new Map<string, ResolvedTool>();
-  for (const t of allTools(config)) {
+  for (const t of allTools(config, companyId)) {
     if (!allowed.has(t.spec.name)) continue;
     byName.set(t.spec.name, t);
     byWire.set(wireName(t.spec.name), t);

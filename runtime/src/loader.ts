@@ -15,6 +15,7 @@ const Ajv: any = (AjvModule as any).default ?? AjvModule;
 const addFormats: any = (addFormatsModule as any).default ?? addFormatsModule;
 import { getDb, newId, one, all, run } from "./db.js";
 import { TOOLS, unknownPatterns } from "../tools/manifest.js";
+import { bridgedTools } from "./integrations/mcp-bridge.js";
 import { INTEGRATIONS, integrationById } from "../integrations/index.js";
 import * as ledger from "./ledger.js";
 import type { CompanyConfig, CompanyRow, LoadedCompany, RoleConfig, IntegrationEnable, McpEnable } from "./types.js";
@@ -77,9 +78,29 @@ export function expandPatterns(patterns: string[], config: CompanyConfig): { nam
         }
       }
     }
+    // MCP bridges: tools are discovered at connect time, so a pattern under a
+    // declared bridge name counts as matched; discovered names are added.
+    for (const en of (config.integrations ?? []).filter(isMcpEnable)) {
+      if (p === `${en.name}.*` || p.startsWith(`${en.name}.`)) {
+        matched = true;
+        for (const t of bridgedTools(companyIdFor(config), [en])) {
+          if (p.endsWith(".*") ? t.spec.name.startsWith(p.slice(0, -1)) : t.spec.name === p) names.add(t.spec.name);
+        }
+        if (!p.endsWith(".*")) names.add(p);
+      }
+    }
     if (!matched) unknown.push(p);
   }
   return { names: [...names], unknown };
+}
+
+/** The bridge cache is keyed by company id; config only knows the slug, so the worker registers the mapping. */
+const slugToId = new Map<string, string>();
+export function registerCompanyId(slug: string, id: string): void {
+  slugToId.set(slug, id);
+}
+export function companyIdFor(config: CompanyConfig): string {
+  return slugToId.get(config.company.slug) ?? config.company.slug;
 }
 
 export function validateConfig(config: CompanyConfig): string[] {
@@ -236,6 +257,7 @@ export function syncCompany(lc: LoadedCompany, orgId: string | null = null): Com
     return one<CompanyRow>("SELECT * FROM companies WHERE id = ?", company.id)!;
   });
   const company = tx();
+  registerCompanyId(company.slug, company.id);
   allocateMonth(company, config);
   return company;
 }

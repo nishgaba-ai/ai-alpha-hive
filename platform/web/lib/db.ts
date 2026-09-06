@@ -99,6 +99,34 @@ function migrate(d: Database.Database) {
       ip TEXT
     );
     CREATE INDEX IF NOT EXISTS idx_audit_org_ts ON audit_events(org_id, ts);
+    -- Per-company access (docs/company/group.md "Who can do what"): one board
+    -- runs many verticals; a reviewer approves, a viewer only looks. Org
+    -- owners/admins are implicitly company owners everywhere, no row needed.
+    CREATE TABLE IF NOT EXISTS company_access (
+      user_id TEXT NOT NULL REFERENCES users(id),
+      org_id TEXT NOT NULL REFERENCES orgs(id),
+      slug TEXT NOT NULL,
+      role TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      PRIMARY KEY (user_id, org_id, slug)
+    );
+    -- Organisation invites (docs/company/group.md "Who can do what"): an
+    -- owner mints a link, the invitee registers or signs in through it and
+    -- lands in this org with the org role plus the company grants below.
+    -- Only the sha256 of the token is stored; a revoke deletes the row.
+    CREATE TABLE IF NOT EXISTS invites (
+      id TEXT PRIMARY KEY,
+      org_id TEXT NOT NULL REFERENCES orgs(id),
+      email TEXT NOT NULL COLLATE NOCASE,
+      org_role TEXT NOT NULL,
+      company_grants_json TEXT NOT NULL DEFAULT '[]',
+      token_hash TEXT NOT NULL UNIQUE,
+      invited_by TEXT NOT NULL REFERENCES users(id),
+      created_at INTEGER NOT NULL,
+      expires_at INTEGER NOT NULL,
+      accepted_at INTEGER
+    );
+    CREATE INDEX IF NOT EXISTS idx_invites_org ON invites(org_id, accepted_at, expires_at);
   `);
 }
 

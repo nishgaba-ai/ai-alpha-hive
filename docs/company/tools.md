@@ -68,10 +68,12 @@ fail company load.
 |---|---|---|---|
 | `wallet.read` | read | `wallet_id?` | own wallet by default |
 | `wallet.transfer` | hire | `to_wallet, amount, currency, reason` | always parks |
-| `card.request` | hire | `purpose, per_tx, monthly, categories[]` | always parks; ledger-only companies get a clear error |
+| `card.request` | hire | `purpose, per_tx, monthly, categories[]` | always parks; on approval the worker issues a Stripe Issuing virtual card (ledger-only companies get a clear error) |
 | `card.freeze` | write | `card_id` | own card; always allowed |
 | `card.purchase` | spend | `vendor, amount, currency, reason, url?` | hold → capture; the gate decides |
 | `card.transactions` | read | `period` | |
+| `invoice.create` | write | `customer_name, items[], place_of_supply?, customer_gstin?, due_on?` | finance role; GST split from `treasury.gst_state` |
+| `invoice.send` | send | `invoice_id, reason` | marks sent, attaches a payment link, emails the customer |
 | `payment-link.create` | write | `amount, currency, description, customer_email?` | Razorpay (INR) / Stripe Checkout |
 | `payment-link.send` | send | `link_id, to, message` | alias; use email.send |
 | `treasury.fund` | board | — | humans only |
@@ -84,9 +86,9 @@ fail company load.
 | `infra.targets` | read | — | vercel / droplet / local |
 | `infra.secret.set` | write | `name, value` | write-only; value redacted immediately |
 | `infra.secret.list` | read | — | names only |
-| `infra.domain.search` | read | `name` | RDAP availability |
-| `infra.domain.buy` | spend | `name, years, reason` | registrar module pending |
-| `infra.dns.set` | write | `domain, record` | DNS module pending |
+| `infra.domain.search` | read | `name` | RDAP availability + registrar list price |
+| `infra.domain.buy` | spend | `name, years, reason` | Porkbun when its keys are in the vault, else a board task |
+| `infra.dns.set` | write | `domain, record{type,name,content,proxied?}` | Cloudflare (`CLOUDFLARE_API_TOKEN`) |
 | `github.pr.open` | write | `repo, branch, title, body` | via `gh` |
 | `github.pr.merge` | deploy | `pr, reason` | parks on the production branch |
 | `github.issue.create` | write | `repo, title, body` | |

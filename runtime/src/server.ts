@@ -22,6 +22,13 @@ import { catalogue } from "./tools/resolve.js";
 import { startOAuth, handleCallback, connected as oauthConnected, redirectUri, uiUrl } from "./oauth.js";
 import { listTemplates, scaffoldCompany, slugify } from "./init.js";
 import { recover } from "./scheduler.js";
+import { handleStripe, handleRazorpay } from "./webhooks.js";
+import { cards as listCards, issueCard, setCardFrozen, providerFor as cardProviderFor } from "./cards/index.js";
+import * as inv from "./invoices.js";
+import { importBankCsv, PRESETS as BANK_PRESETS, type ColumnMap } from "./bank-import.js";
+import { bridgeStatus } from "./integrations/mcp-bridge.js";
+import { isMcpEnable } from "./loader.js";
+import { latestIntake, intakes, submitIntake, composeMission, type Intake } from "./intake.js";
 import type { Registry, Entry } from "./registry.js";
 import type { AgentRow, ApprovalRow, RunRow, TaskRow } from "./types.js";
 import fs from "node:fs";
@@ -38,6 +45,11 @@ function route(method: string, pathPattern: string, handler: Handler): Route {
     return "([^/]+)";
   }) + "/?$");
   return { method, pattern, keys, handler };
+}
+
+function html(res: http.ServerResponse, status: number, body: string) {
+  res.writeHead(status, { "Content-Type": "text/html; charset=utf-8" });
+  res.end(body);
 }
 
 function json(res: http.ServerResponse, status: number, body: unknown) {
@@ -242,7 +254,14 @@ export function startServer(registry: Registry, port: number, opts: { onReload?:
         const agent = w.owner_type === "agent" ? one<AgentRow>("SELECT name, role_key FROM agents WHERE id = ?", w.owner_id) : undefined;
         return { ...w, name: agent?.name ?? "company", role: agent?.role_key ?? null, balance_minor: ledger.balance(cid, acct), holds_minor: ledger.openHolds(cid, acct), available_minor: ledger.available(cid, acct), mtd_spend_minor: ledger.monthToDateSpend(cid, acct) };
       });
-      json(res, 200, { currency: e.company.currency, wallets, accounts: ledger.accounts(cid), entries: ledger.entries(cid, 200), cards: all("SELECT * FROM cards WHERE company_id = ?", cid), config: e.loaded.config.treasury });
+      const provider = cardProviderFor(e.loaded.config);
+      const present = new Set(secretNames(cid));
+      json(res, 200, {
+        currency: e.company.currency, wallets, accounts: ledger.accounts(cid), entries: ledger.entries(cid, 200), cards: listCards(cid), config: e.loaded.config.treasury,
+        card_provider: provider ? { id: provider.id, ready: provider.requiredSecrets.every((n) => present.has(n)), missing_secrets: provider.requiredSecrets.filter((n) => !present.has(n)), webhook_url: `${process.env.HIVE_PUBLIC_URL ?? ""}/api/webhooks/stripe/${e.company.slug}` } : null,
+        revenue_webhooks: { stripe: `${process.env.HIVE_PUBLIC_URL ?? ""}/api/webhooks/stripe/${e.company.slug}`, razorpay: `${process.env.HIVE_PUBLIC_URL ?? ""}/api/webhooks/razorpay/${e.company.slug}` },
+        webhook_events: all("SELECT * FROM webhook_events WHERE company_id = ? ORDER BY received_at DESC LIMIT 50", cid),
+      });
     }),
     route("GET", "/api/companies/:slug/artifacts", (_r, res, p) => json(res, 200, all("SELECT * FROM artifacts WHERE company_id = ? ORDER BY created_at DESC LIMIT 200", need(p.slug).company.id))),
     route("GET", "/api/companies/:slug/messages", (_r, res, p) => json(res, 200, all("SELECT m.*, a.name AS from_name FROM messages m LEFT JOIN agents a ON a.id = m.from_id WHERE m.company_id = ? ORDER BY ts DESC LIMIT 200", need(p.slug).company.id))),
@@ -482,6 +501,117 @@ export function startServer(registry: Registry, port: number, opts: { onReload?:
       }
     }),
 
+    // cards (board actions after an approved card.request, or retries)
+    route("POST", "/api/companies/:slug/cards/:id/issue", async (_r, res, p) => {
+      const e = need(p.slug);
+      try {
+        json(res, 200, await issueCard(e.company, e.loaded.config, p.id));
+      } catch (err) {
+        json(res, 400, { error: (err as Error).message });
+      }
+    }),
+    route("POST", "/api/companies/:slug/cards/:id/freeze", async (req, res, p) => {
+      const e = need(p.slug);
+      const b = await body<{ frozen?: boolean }>(req);
+      try {
+        await setCardFrozen(e.company, e.loaded.config, p.id, b.frozen !== false);
+        json(res, 200, { ok: true });
+      } catch (err) {
+        json(res, 400, { error: (err as Error).message });
+      }
+    }),
+
+    // webhooks (signature-verified per company; exempt from the bearer token)
+    route("POST", "/api/webhooks/stripe/:slug", async (req, res, p) => {
+      const e = need(p.slug);
+      const raw = (await rawBody(req)).toString("utf8");
+      const r = await handleStripe({ company: e.company, config: e.loaded.config }, raw, req.headers["stripe-signature"] as string | undefined);
+      json(res, r.status, r.body);
+    }),
+    route("POST", "/api/webhooks/razorpay/:slug", async (req, res, p) => {
+      const e = need(p.slug);
+      const raw = (await rawBody(req)).toString("utf8");
+      const r = await handleRazorpay({ company: e.company, config: e.loaded.config }, raw, req.headers["x-razorpay-signature"] as string | undefined, req.headers["x-razorpay-event-id"] as string | undefined);
+      json(res, r.status, r.body);
+    }),
+
+    // invoices + GST
+    route("GET", "/api/companies/:slug/erp/invoices", (_r, res, p, url) => json(res, 200, inv.invoices(need(p.slug).company.id, url.searchParams.get("status") ?? undefined))),
+    route("POST", "/api/companies/:slug/erp/invoices", async (req, res, p) => {
+      const e = need(p.slug);
+      const b = await body<inv.NewInvoice>(req);
+      try {
+        json(res, 200, inv.createInvoice(e.company.id, { ...b, currency: b.currency ?? e.company.currency }, { prefix: e.loaded.config.treasury.invoice_prefix, companyState: e.loaded.config.treasury.gst_state }));
+      } catch (err) {
+        json(res, 400, { error: (err as Error).message });
+      }
+    }),
+    route("GET", "/api/companies/:slug/erp/invoices/:id/html", (_r, res, p) => {
+      const e = need(p.slug);
+      const i = inv.invoiceById(e.company.id, p.id);
+      if (!i) return json(res, 404, { error: "no such invoice" });
+      html(res, 200, inv.invoiceHtml(i, { name: e.company.name, gstin: e.loaded.config.treasury.gstin, address: e.loaded.config.treasury.address, state: e.loaded.config.treasury.gst_state }));
+    }),
+    route("POST", "/api/companies/:slug/erp/invoices/:id/status", async (req, res, p) => {
+      const e = need(p.slug);
+      const b = await body<{ status: "draft" | "sent" | "paid" | "void"; payment_link?: string }>(req);
+      if (!["draft", "sent", "paid", "void"].includes(b.status)) return json(res, 400, { error: "bad status" });
+      inv.setInvoiceStatus(e.company.id, p.id, b.status, { payment_link: b.payment_link });
+      if (b.status === "paid") {
+        const i = inv.invoiceById(e.company.id, p.id)!;
+        ledger.post(e.company.id, [{ account: "cash", debit: i.total_minor }, { account: "revenue", credit: i.total_minor }], `invoice ${i.number} paid (manual)`, i.id);
+      }
+      json(res, 200, { ok: true });
+    }),
+    route("GET", "/api/companies/:slug/erp/gst/:period", (_r, res, p) => json(res, 200, inv.gstSummary(need(p.slug).company.id, p.period))),
+
+    // bank statement import
+    route("GET", "/api/erp/bank/presets", (_r, res) => json(res, 200, BANK_PRESETS)),
+    route("POST", "/api/companies/:slug/erp/bank/import", async (req, res, p) => {
+      const e = need(p.slug);
+      const b = await body<{ account_id: string; csv: string; preset?: string; map?: ColumnMap; dry_run?: boolean; by?: string }>(req);
+      const map = b.map ?? (b.preset ? BANK_PRESETS[b.preset] : undefined);
+      if (!b.account_id || !b.csv || !map) return json(res, 400, { error: "account_id, csv and preset|map required" });
+      try {
+        json(res, 200, importBankCsv(e.company.id, b.account_id, b.csv, map, b.by ?? "board", !!b.dry_run));
+      } catch (err) {
+        json(res, 400, { error: (err as Error).message });
+      }
+    }),
+
+    // group statement: every company summed for the CA
+    route("GET", "/api/group/statement/:period", (_r, res, p) => {
+      const companies = registry.all().map((e) => ({ slug: e.company.slug, name: e.company.name, currency: e.company.currency, statement: erp.statement(e.company.id, p.period), gst: inv.gstSummary(e.company.id, p.period) }));
+      const totals = companies.reduce((t, c) => ({
+        inflow_minor: t.inflow_minor + c.statement.totals.inflow_minor, outflow_minor: t.outflow_minor + c.statement.totals.outflow_minor, net_minor: t.net_minor + c.statement.totals.net_minor,
+        payroll_minor: t.payroll_minor + (c.statement.payroll?.total_minor ?? 0), agent_spend_minor: t.agent_spend_minor + c.statement.agents.spend_minor, revenue_minor: t.revenue_minor + c.statement.agents.revenue_minor,
+        gst_payable_minor: t.gst_payable_minor + c.gst.net_payable_minor,
+      }), { inflow_minor: 0, outflow_minor: 0, net_minor: 0, payroll_minor: 0, agent_spend_minor: 0, revenue_minor: 0, gst_payable_minor: 0 });
+      json(res, 200, { period: p.period, companies, totals });
+    }),
+    route("GET", "/api/group/statement/:period/csv", (_r, res, p) => {
+      const parts = registry.all().map((e) => `# ${e.company.name} (${e.company.slug})\n${erp.statementCsv(e.company.id, p.period)}`);
+      res.writeHead(200, { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": `attachment; filename="group-${p.period}.csv"` });
+      res.end(parts.join("\n\n"));
+    }),
+
+    // website intake
+    route("GET", "/api/companies/:slug/intake", (_r, res, p) => json(res, 200, { latest: latestIntake(need(p.slug).company.id) ?? null, history: intakes(need(p.slug).company.id) })),
+    route("POST", "/api/companies/:slug/intake", async (req, res, p) => {
+      const e = need(p.slug);
+      const b = await body<Intake & { start?: boolean }>(req);
+      if (!b.website || !b.product || !b.audience || !b.goals) return json(res, 400, { error: "website, product, audience and goals are required" });
+      if (e.company.status !== "running" && b.start !== false) sql("UPDATE companies SET status = 'running' WHERE id = ?", e.company.id), (e.company.status = "running");
+      json(res, 200, submitIntake(e.deps, b, b.start !== false));
+    }),
+    route("POST", "/api/companies/:slug/intake/preview", async (req, res) => json(res, 200, { mission: composeMission(await body<Intake>(req)) })),
+
+    // MCP bridges
+    route("GET", "/api/companies/:slug/mcp", (_r, res, p) => {
+      const e = need(p.slug);
+      json(res, 200, bridgeStatus(e.company.id, (e.loaded.config.integrations ?? []).filter(isMcpEnable)));
+    }),
+
     // migration
     route("GET", "/api/export", (_r, res) => json(res, 200, exportBundle(registry.all().map((e) => ({ slug: e.company.slug, dir: e.loaded.dir }))))),
   ];
@@ -492,7 +622,7 @@ export function startServer(registry: Registry, port: number, opts: { onReload?:
       res.writeHead(204, { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "Authorization, Content-Type", "Access-Control-Allow-Methods": "GET,POST,PUT,PATCH,DELETE" });
       return res.end();
     }
-    const open = url.pathname === "/" || url.pathname === "/api/health" || url.pathname === "/api/oauth/callback";
+    const open = url.pathname === "/" || url.pathname === "/api/health" || url.pathname === "/api/oauth/callback" || url.pathname.startsWith("/api/webhooks/");
     if (token && !open && req.headers.authorization !== `Bearer ${token}` && url.searchParams.get("token") !== token) return json(res, 401, { error: "unauthorized" });
     for (const r of routes) {
       if (r.method !== req.method) continue;

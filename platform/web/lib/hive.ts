@@ -77,7 +77,13 @@ export type Approval = {
 };
 export type HiveEvent = { id: string; seq: number; run_id: string | null; agent_id: string | null; ts: number; type: string; payload: Record<string, unknown> };
 export type Task = { id: string; key: string | null; title: string; intent: string; acceptance: string; owner_role: string; status: string; budget_cap: number; priority: number; notes: string | null; mission_id: string | null; created_at: number; updated_at: number; assignee_person_id?: string | null; due_at?: number | null };
-export type Template = { id: string; name: string; mission: string; roles: { id: string; title: string }[]; integrations: string[]; blurb: string; currency: string; monthly_cap: number };
+export type TemplateTreeNode = { id: string; title: string; reports_to: string; model: string; count?: number };
+export type Template = {
+  id: string; name: string; mission: string; roles: { id: string; title: string }[]; integrations: string[]; blurb: string; currency: string; monthly_cap: number;
+  /** Gallery presentation (templates/companies/meta.json) and the reporting tree the worker derives from roles' reports_to. */
+  accent: string; icon: string; tagline: string; highlights: string[]; best_for: string;
+  tree: TemplateTreeNode[]; teams: { id: string; lead: string; members: string[] }[];
+};
 
 /** Sentence case for names the runtime keys by role ("ceo" → "Ceo", "writer-2" → "Writer 2"); a role title wins when the name is just the role key. */
 export function displayName(name: string, title?: string | null, roleKey?: string | null): string {

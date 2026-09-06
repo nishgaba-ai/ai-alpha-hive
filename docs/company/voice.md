@@ -47,12 +47,41 @@ voice:
 Keys (`OPENAI_API_KEY`, `DEEPGRAM_API_KEY`, `ELEVENLABS_API_KEY`) live in
 the company vault; the browser only ever receives audio.
 
-## 3. Telegram (text and voice notes, next)
+## 3. Telegram voice notes
 
-Board commands work today (`/status`, `/approvals`, `/approve`, `/deny`,
-`/statement`, `/mission`, `/ask`). Voice notes: the poller will download
-the OGG, transcribe through the configured STT, and route the text to
-`/ask` — same assistant, same rules. Lands with the bank-import round.
+Board commands work as text (`/status`, `/approvals`, `/approve`, `/deny`,
+`/statement`, `/mission`, `/ask`) and as **voice notes**: the poller in
+`runtime/src/telegram.ts` downloads the OGG through `getFile`, transcribes
+it with the company's server STT, and routes the words like a typed
+command:
+
+| Note starts with | Becomes |
+|---|---|
+| "mission …" | `/mission …` (a task tree is planned) |
+| "approve …" / "deny …" + the first characters of a pending approval id | `/approve <id>` / `/deny <id> [note]` |
+| anything else (including "approve the LinkedIn post") | `/ask …` — the board assistant, same rules as the Voice screen |
+
+The reply is text, prefixed with what was heard; when `voice.tts` is set
+the same answer is also sent back as a voice bubble (`sendVoice`, OGG or
+MP3 as the provider returns it). Every note is logged as `telegram.voice`
+with the chat id and a transcript preview.
+
+What to store, because Telegram has no browser to transcribe in:
+
+- Vault: `OPENAI_API_KEY` (STT via gpt-4o-transcribe, TTS via
+  gpt-4o-mini-tts) **or** `DEEPGRAM_API_KEY` (STT via nova-3); optionally
+  `ELEVENLABS_API_KEY` for the spoken reply.
+- Company yaml:
+
+```yaml
+voice:
+  stt: openai              # openai | deepgram — required for voice notes
+  tts: elevenlabs          # optional: openai | elevenlabs
+  voice_id: 21m00Tcm4TlvDq8ikWAM
+```
+
+Without `voice.stt` the bot answers a voice note with a one-line hint
+naming the secret and the yaml line to add.
 
 ## Rules the assistant follows
 

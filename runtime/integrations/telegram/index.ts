@@ -28,6 +28,23 @@ export async function tgSendDocument(token: string, chatId: string, filename: st
   return (await res.json()) as { ok: boolean; description?: string };
 }
 
+/**
+ * Spoken reply. Telegram renders OGG/Opus and MP3 as a voice bubble via
+ * sendVoice; anything else (m4a, wav) goes through sendAudio so it still
+ * plays. The mime decides the method, field and filename.
+ */
+export async function tgSendVoice(token: string, chatId: string, audio: Buffer, mime: string, caption?: string) {
+  const m = mime.toLowerCase();
+  const ext = m.includes("ogg") || m.includes("opus") ? "ogg" : m.includes("mpeg") || m.includes("mp3") ? "mp3" : m.includes("mp4") || m.includes("m4a") ? "m4a" : m.includes("wav") ? "wav" : "bin";
+  const asVoice = ext === "ogg" || ext === "mp3";
+  const form = new FormData();
+  form.set("chat_id", chatId);
+  if (caption) form.set("caption", caption.slice(0, 1000));
+  form.set(asVoice ? "voice" : "audio", new Blob([new Uint8Array(audio)], { type: mime }), `reply.${ext}`);
+  const res = await fetch(`${TG}${token}/${asVoice ? "sendVoice" : "sendAudio"}`, { method: "POST", body: form });
+  return (await res.json()) as { ok: boolean; description?: string };
+}
+
 export default defineIntegration({
   id: "telegram",
   auth: { kind: "api_key", guide: "Telegram bots use a token from @BotFather; there is no OAuth." },
@@ -37,8 +54,20 @@ export default defineIntegration({
   guidance: `
 ## What it does
 - **notify** — \`telegram.notify\` sends a message to the board chats (internal, \`write\`).
-- **Board commands** (handled by the worker, not by agents): \`/status\`, \`/approvals\`, \`/approve <id>\`, \`/deny <id> [note]\`, \`/statement 2026-08\`, \`/ask <question>\`. Only chat ids in \`TELEGRAM_BOARD_CHAT_IDS\` are obeyed; everyone else gets silence.
+- **Board commands** (handled by the worker, not by agents): \`/status\`, \`/approvals\`, \`/approve <id>\`, \`/deny <id> [note]\`, \`/statement 2026-08\`, \`/mission <text>\`, \`/ask <question>\`. Only chat ids in \`TELEGRAM_BOARD_CHAT_IDS\` are obeyed; everyone else gets silence.
 - Approval requests are pushed to the board chats automatically with inline **Approve / Deny** buttons.
+
+## Voice notes
+- Send a voice note (or an audio file) to the bot instead of typing. The worker downloads it, transcribes it through the company's server STT and routes the words like a command: a note starting with **"mission …"** starts a mission, **"approve …"** / **"deny …"** followed by (the first characters of) a pending approval id decides it, anything else is asked of the board assistant.
+- Needs server STT in the company config, since Telegram cannot transcribe in the browser for us:
+  \`\`\`yaml
+  voice:
+    stt: openai        # openai | deepgram   (OPENAI_API_KEY or DEEPGRAM_API_KEY in the vault)
+    tts: elevenlabs    # optional: openai | elevenlabs; the answer comes back as a voice bubble too
+    voice_id: 21m00Tcm4TlvDq8ikWAM
+  \`\`\`
+- Without \`voice.stt\` the bot replies with a one-line hint naming the secret and the yaml line. Without \`voice.tts\` you get the text answer only.
+- Each transcript is logged as \`telegram.voice\` (chat id + preview); the decision or mission it triggers is audited like a typed command.
 
 ## Getting credentials
 1. Talk to @BotFather → \`/newbot\` → copy the token → \`TELEGRAM_BOT_TOKEN\`.

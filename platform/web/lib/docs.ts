@@ -9,7 +9,7 @@ const DIR = path.join(process.cwd(), "content", "docs");
 export type DocPage = { slug: string[]; title: string; html: string };
 
 const ORDER = [
-  "getting-started", "playbooks/publishing", "integrations", "integrations-status", "tools", "runtime", "schema", "treasury", "erp", "voice", "group",
+  "getting-started", "playbooks/publishing", "integrations", "integrations-status", "tools", "runtime", "schema", "treasury", "erp", "voice", "group", "deploy",
   "playbooks/ugc-creators", "design-system", "ui-graph",
 ];
 

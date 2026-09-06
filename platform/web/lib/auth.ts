@@ -6,6 +6,7 @@ import { newId, newSecret } from "./ids";
 import { audit } from "./audit";
 import { sendEmail, emailConfigured } from "./email";
 import type { Role } from "./rbac";
+import { acceptInvite, type AcceptResult } from "./invites";
 
 // Standard preset of the Login/RBAC library (docs/specs/login-rbac.md):
 // argon2id passwords, DB-backed revocable sessions, single-use hashed
@@ -115,10 +116,19 @@ function lockedOut(email: string): boolean {
   return row.n >= LOCKOUT_FAILS;
 }
 
+export type LoginResult = { ok: true; invite?: AcceptResult } | { ok: false; error: string };
+
+/**
+ * Credentials first, then — when the person arrived through
+ * /login?invite=<token> — the invite is accepted and that organisation
+ * becomes the session org. An invalid invite never blocks the login; the
+ * outcome rides back in `invite` so the caller can say what happened.
+ */
 export async function loginUser(
   email: string,
   password: string,
-): Promise<{ ok: true } | { ok: false; error: string }> {
+  opts: { inviteToken?: string } = {},
+): Promise<LoginResult> {
   email = email.trim().toLowerCase();
   const db = getDb();
   const { ip, ua } = await requestMeta();
@@ -139,15 +149,18 @@ export async function loginUser(
   if (!user || !verified || user.status !== "active") return fail("bad-credentials");
   if (!user.email_verified_at) return { ok: false, error: "Verify your email first — check your inbox." };
 
-  const membership = db
-    .prepare("SELECT org_id, role FROM memberships WHERE user_id = ? AND status = 'active' ORDER BY created_at LIMIT 1")
-    .get(user.id) as { org_id: string; role: Role } | undefined;
+  const invite = opts.inviteToken ? acceptInvite(opts.inviteToken, { id: user.id, email: user.email }) : undefined;
+  const membership = invite?.ok
+    ? { org_id: invite.orgId }
+    : (db
+        .prepare("SELECT org_id, role FROM memberships WHERE user_id = ? AND status = 'active' ORDER BY created_at LIMIT 1")
+        .get(user.id) as { org_id: string; role: Role } | undefined);
   if (!membership) return fail("no-org");
 
   db.prepare("INSERT INTO login_attempts (email, ip, success, ts) VALUES (?, ?, 1, ?)").run(email, ip, Date.now());
   await createSession(user.id, membership.org_id, ip, ua);
   audit("login.success", { actorId: user.id, orgId: membership.org_id, ip });
-  return { ok: true };
+  return { ok: true, invite };
 }
 
 // ---------- sessions ----------
@@ -218,6 +231,48 @@ export async function destroySession(): Promise<void> {
     if (row) audit("session.revoke", { actorId: row.user_id, orgId: row.org_id, resource: "session:self" });
   }
   jar.delete(COOKIE);
+}
+
+export type Membership = { orgId: string; orgName: string; role: Role };
+
+/** Every active organisation this user belongs to, oldest first (the login default first). */
+export function listMemberships(userId: string): Membership[] {
+  return (
+    getDb()
+      .prepare(
+        `SELECT m.org_id, o.name AS org_name, m.role FROM memberships m
+           JOIN orgs o ON o.id = m.org_id
+          WHERE m.user_id = ? AND m.status = 'active'
+          ORDER BY m.created_at`,
+      )
+      .all(userId) as { org_id: string; org_name: string; role: Role }[]
+  ).map((r) => ({ orgId: r.org_id, orgName: r.org_name, role: r.role }));
+}
+
+/**
+ * Point an existing session at another organisation the user actively
+ * belongs to. The cookie stays; getSession() reads the new org next time.
+ * `sessionId` is the stored (hashed) id, i.e. Session.id.
+ */
+export function switchSessionOrg(sessionId: string, userId: string, orgId: string): boolean {
+  const db = getDb();
+  const member = db
+    .prepare("SELECT role FROM memberships WHERE user_id = ? AND org_id = ? AND status = 'active'")
+    .get(userId, orgId) as { role: Role } | undefined;
+  if (!member) return false;
+  const res = db
+    .prepare("UPDATE sessions SET org_id = ? WHERE id = ? AND user_id = ? AND revoked_at IS NULL")
+    .run(orgId, sessionId, userId);
+  if (res.changes !== 1) return false;
+  audit("session.switch-org", { actorId: userId, orgId, resource: "session:self" });
+  return true;
+}
+
+/** Someone already signed in opens an invite link: accept it and move this session there. */
+export function acceptInviteAsCurrentUser(session: Session, token: string): AcceptResult {
+  const res = acceptInvite(token, { id: session.userId, email: session.email });
+  if (res.ok) switchSessionOrg(session.id, session.userId, res.orgId);
+  return res;
 }
 
 export function revokeAllSessions(userId: string): void {

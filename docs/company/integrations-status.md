@@ -30,6 +30,17 @@ Not built yet (declared in plans): Razorpay/Stripe webhooks that post
 revenue, WhatsApp, Google Drive, Notion, the MCP bridge, Stripe Issuing
 cards, registrar/DNS.
 
+## Core money and infrastructure modules
+
+| Module | Built | Verified against the real service |
+|---|---|---|
+| Stripe Issuing cards (`runtime/src/cards/`) | yes: issue, freeze, transactions, real-time authorization from the ledger | no (needs an Issuing account; India runs ledger-only) |
+| Stripe webhook (`/api/webhooks/stripe/<slug>`) | yes: signature check, idempotency, authorizations, transactions, Checkout revenue | signature and ledger paths unit-tested; not yet hit by Stripe |
+| Razorpay webhook (`/api/webhooks/razorpay/<slug>`) | yes: signature check, `payment_link.paid` → revenue + invoice | unit-tested; not yet hit by Razorpay |
+| Cloudflare DNS (`infra.dns.set`) | yes: zone lookup, upsert | no |
+| Registrar (`infra.domain.search/buy`) | yes: RDAP + Porkbun price list; Porkbun registration; manual fallback creates a board task | search works without keys; buy not exercised |
+| MCP bridge (`integrations: - mcp:`) | yes: stdio + Streamable HTTP, per-tool classes | no external server attached yet |
+
 ## How to verify one
 
 1. Integrations → open it → connect or paste the key → **Run healthcheck**.

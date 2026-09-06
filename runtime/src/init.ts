@@ -5,6 +5,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { parse as parseYaml } from "yaml";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
@@ -21,27 +22,97 @@ export function templatesDir(): string {
   return path.join(repoRoot(), "templates", "companies");
 }
 
-export type TemplateInfo = { id: string; name: string; mission: string; roles: { id: string; title: string }[]; integrations: string[]; blurb: string; currency: string; monthly_cap: number };
+/** Gallery presentation per template, from templates/companies/meta.json. */
+export type TemplateMeta = { accent: string; icon: string; tagline: string; highlights: string[]; best_for: string };
+export type TemplateTreeNode = { id: string; title: string; reports_to: string; model: string; count?: number };
+export type TemplateTeam = { id: string; lead: string; members: string[] };
+export type TemplateInfo = TemplateMeta & {
+  id: string;
+  name: string;
+  mission: string;
+  roles: { id: string; title: string }[];
+  integrations: string[];
+  blurb: string;
+  currency: string;
+  monthly_cap: number;
+  /** Reporting tree derived from roles' reports_to (board is implicit). */
+  tree: TemplateTreeNode[];
+  teams: TemplateTeam[];
+};
+
+const DEFAULT_META: TemplateMeta = { accent: "#6c5ce7", icon: "◇", tagline: "", highlights: [], best_for: "" };
+
+function readMeta(dir: string): Record<string, Partial<TemplateMeta>> {
+  try {
+    const parsed = JSON.parse(fs.readFileSync(path.join(dir, "meta.json"), "utf8")) as unknown;
+    return parsed && typeof parsed === "object" ? (parsed as Record<string, Partial<TemplateMeta>>) : {};
+  } catch {
+    return {};
+  }
+}
+
+function metaFor(all: Record<string, Partial<TemplateMeta>>, id: string): TemplateMeta {
+  const m = all[id] ?? {};
+  return {
+    accent: typeof m.accent === "string" && m.accent ? m.accent : DEFAULT_META.accent,
+    icon: typeof m.icon === "string" && m.icon ? m.icon : DEFAULT_META.icon,
+    tagline: typeof m.tagline === "string" ? m.tagline : DEFAULT_META.tagline,
+    highlights: Array.isArray(m.highlights) ? m.highlights.filter((h): h is string => typeof h === "string") : DEFAULT_META.highlights,
+    best_for: typeof m.best_for === "string" ? m.best_for : DEFAULT_META.best_for,
+  };
+}
+
+// Loose shape of a template yaml; only the keys the gallery reads.
+type TemplateDoc = {
+  company?: { name?: unknown; mission?: unknown; currency?: unknown };
+  treasury?: { monthly_cap?: unknown };
+  roles?: { id?: unknown; title?: unknown; reports_to?: unknown; model?: unknown; count?: unknown }[];
+  teams?: { id?: unknown; lead?: unknown; members?: unknown }[];
+  integrations?: { id?: unknown }[];
+};
+
+const str = (v: unknown, fallback = ""): string => (typeof v === "string" ? v : typeof v === "number" ? String(v) : fallback);
 
 export function listTemplates(): TemplateInfo[] {
   const dir = templatesDir();
+  const meta = readMeta(dir);
   return fs
     .readdirSync(dir)
     .filter((f) => f.endsWith(".yaml"))
     .map((f) => {
+      const id = f.replace(".yaml", "");
       const text = fs.readFileSync(path.join(dir, f), "utf8");
       const blurb = text.split("\n").filter((l) => l.startsWith("#")).slice(1).map((l) => l.replace(/^#\s?/, "")).join(" ").split("  ")[0].trim();
-      const roles = [...text.matchAll(/^\s*- id: ([\w-]+)\n\s*title: (.+)$/gm)].map((m) => ({ id: m[1], title: m[2].trim() }));
-      const integrations = [...text.matchAll(/^\s*- id: ([\w-]+)\n\s*modes:/gm)].map((m) => m[1]);
+      let doc: TemplateDoc = {};
+      try {
+        const parsed = parseYaml(text) as unknown;
+        if (parsed && typeof parsed === "object") doc = parsed as TemplateDoc;
+      } catch {
+        /* keep the template listed even if the yaml is mid-edit */
+      }
+      const roleDocs = Array.isArray(doc.roles) ? doc.roles.filter((r) => r && typeof r === "object" && typeof r.id === "string") : [];
+      const tree: TemplateTreeNode[] = roleDocs.map((r) => {
+        const count = Number(r.count);
+        const node: TemplateTreeNode = { id: str(r.id), title: str(r.title, str(r.id)), reports_to: str(r.reports_to, "board"), model: str(r.model) };
+        if (Number.isFinite(count) && count > 1) node.count = count;
+        return node;
+      });
+      const teams: TemplateTeam[] = (Array.isArray(doc.teams) ? doc.teams : [])
+        .filter((t) => t && typeof t === "object" && typeof t.id === "string")
+        .map((t) => ({ id: str(t.id), lead: str(t.lead), members: Array.isArray(t.members) ? t.members.map((m) => str(m)).filter(Boolean) : [] }));
+      const integrations = (Array.isArray(doc.integrations) ? doc.integrations : []).map((i) => str(i?.id)).filter(Boolean);
       return {
-        id: f.replace(".yaml", ""),
-        name: /^\s*name: "?([^"\n]+)"?$/m.exec(text)?.[1] ?? f,
-        mission: /^\s*mission: "?([^"\n]+)"?$/m.exec(text)?.[1] ?? "",
-        currency: /^\s*currency: (\w+)/m.exec(text)?.[1] ?? "INR",
-        monthly_cap: Number(/^\s*monthly_cap: (\d+)/m.exec(text)?.[1] ?? 0),
-        roles,
+        id,
+        name: str(doc.company?.name, f),
+        mission: str(doc.company?.mission),
+        currency: str(doc.company?.currency, "INR"),
+        monthly_cap: Number(doc.treasury?.monthly_cap ?? 0) || 0,
+        roles: tree.map((r) => ({ id: r.id, title: r.title })),
         integrations,
         blurb,
+        tree,
+        teams,
+        ...metaFor(meta, id),
       };
     });
 }

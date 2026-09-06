@@ -49,9 +49,40 @@ company directory and every table; `hive company import bundle.json --into
 re-clone workspaces (they are git repositories). Nothing references a
 host outside `.env`.
 
+## Who can do what
+
+Access is per company, on top of the organisation roles. Org owners and
+admins own every vertical implicitly; everyone else gets a row in
+`company_access(user_id, org_id, slug, role)` from the company's
+**Access** page (owners only). Three company roles:
+
+| Role     | Can                                                                 |
+| -------- | ------------------------------------------------------------------- |
+| owner    | everything: approve, missions and tasks, `company.yaml`, secrets and integrations, ERP pay/approve, manage access |
+| reviewer | view, approve or deny, start missions and edit tasks                |
+| viewer   | view only                                                           |
+
+So Nishchal (org owner) runs the group, Surabhi is a reviewer on the
+verticals she co-reviews, and an intern is a viewer on the one company
+they are assigned to and cannot see the others in the switcher or on `/c`.
+Server actions and the `/api/hive` proxy check the same matrix
+(`platform/web/lib/rbac.ts`), and every grant, removal and gated action is
+an audit event.
+
+To bring someone new in, an organisation owner opens the company's
+**Access** page, fills in **Invite someone** (their email, an organisation
+role — viewer by default — and reviewer or viewer on this company) and
+copies the link the page shows, `/register?invite=<token>`, which is valid
+for seven days and is never emailed by the app. The invitee registers or
+signs in through that link with the same email; the invite is accepted at
+their first sign-in, which puts them in your organisation with the
+company_access rows already applied and makes it their current
+organisation. Anyone in more than one organisation gets an **Organisation**
+menu in the header to switch, and every create, accept and revoke is an
+audit event (`org.invite.*`).
+
 ## Next
 
 - Group statement CSV (company column) and inter-company transfers.
 - One Telegram chat for the whole group with `/status <slug>`.
-- Per-company platform permissions (a viewer for Realty who cannot see the
-  AI CMO's inbox).
+- Email the invite link from the app (today the owner copies and sends it).

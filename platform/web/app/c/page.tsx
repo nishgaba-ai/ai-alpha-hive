@@ -1,13 +1,20 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { getSession } from "../../lib/auth";
+import { canCompany } from "../../lib/rbac";
 import { hiveOr, money, workerUp, sentence, type CompanySummary } from "../../lib/hive";
 import { Card, Label, Meter, PageTitle, Stat, Empty } from "../../components/ui";
 
 export const dynamic = "force-dynamic";
 
 // Every vertical under one roof.
-export default async function GroupPage() {
+export default async function GroupPage({ searchParams }: { searchParams: Promise<{ msg?: string }> }) {
+  const { msg } = await searchParams;
+  const session = await getSession();
+  if (!session) redirect("/login?next=/c");
   const up = await workerUp();
-  const companies = up ? await hiveOr<CompanySummary[]>("/api/companies", []) : [];
+  // Only the verticals this user may view (lib/rbac.ts company_access).
+  const companies = (up ? await hiveOr<CompanySummary[]>("/api/companies", []) : []).filter((c) => canCompany(session, c.slug, "company:view"));
   const totals = companies.reduce(
     (t, c) => ({ agents: t.agents + c.agents, running: t.running + c.running, pending: t.pending + c.pending_approvals, cost: t.cost + c.cost_minor, cap: t.cap + c.monthly_cap * 100, avail: t.avail + c.available_minor }),
     { agents: 0, running: 0, pending: 0, cost: 0, cap: 0, avail: 0 },
@@ -17,8 +24,10 @@ export default async function GroupPage() {
   return (
     <main className="ground-glow mx-auto max-w-[1400px] px-5 py-8">
       <PageTitle eyebrow="The group" title="Every vertical, one board">
+        <Link href="/c/statement" className="btn btn-ghost">Group statement</Link>
         <Link href="/c/new" className="btn btn-primary">Launch a company</Link>
       </PageTitle>
+      {msg ? <p className="mb-4 rounded-[var(--r-1)] bg-[var(--surface-2)] px-3 py-2 text-sm">{msg}</p> : null}
 
       {!up ? (
         <Card className="mb-6">
@@ -78,7 +87,7 @@ export default async function GroupPage() {
             </Link>
           );
         })}
-        {up && companies.length === 0 ? <Empty>No companies loaded. Launch one from a template.</Empty> : null}
+        {up && companies.length === 0 ? <Empty>{session.role === "owner" || session.role === "admin" ? "No companies loaded. Launch one from a template." : "No companies assigned to you yet. Ask the board for access."}</Empty> : null}
       </section>
     </main>
   );

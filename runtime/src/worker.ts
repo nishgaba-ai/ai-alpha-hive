@@ -12,6 +12,10 @@ import { startServer } from "./server.js";
 import { startTelegram } from "./telegram.js";
 import { vaultConfigured } from "./vault.js";
 import { emit } from "./bus.js";
+import { connectMcp, closeMcp } from "./integrations/mcp-bridge.js";
+import { isMcpEnable } from "./loader.js";
+import { resolver } from "./vault.js";
+import type { Entry } from "./registry.js";
 
 export type WorkerOptions = { companyDirs: string[]; port?: number; once?: boolean; noServer?: boolean; companiesRoot?: string };
 
@@ -32,6 +36,7 @@ export async function startWorker(opts: WorkerOptions): Promise<{ registry: Regi
     const company = syncCompany(loaded);
     registry.add({ company, loaded, deps: { company, config: loaded.config, companyDir: dir } });
     recover(registry.bySlug(company.slug)!.deps);
+    await warmBridges(registry.bySlug(company.slug)!);
     emit(company.id, "company.started", { slug: company.slug, roles: loaded.config.roles.length });
     console.log(`[worker] ${company.name} (${company.slug}) — ${loaded.config.roles.length} roles, status ${company.status}`);
   }
@@ -39,10 +44,24 @@ export async function startWorker(opts: WorkerOptions): Promise<{ registry: Regi
   if (!opts.once) stops.push(startScheduler(() => registry.all().map((e) => e.deps)));
   if (!opts.noServer) {
     const port = opts.port ?? Number(process.env.HIVE_API_PORT ?? 4700);
-    const server = startServer(registry, port, { companiesRoot: opts.companiesRoot });
+    const server = startServer(registry, port, { companiesRoot: opts.companiesRoot, onReload: (slug) => { const e = registry.bySlug(slug); if (e) warmBridges(e).catch(() => {}); } });
     stops.push(() => server.close());
     console.log(`[worker] API on http://localhost:${port}/api`);
   }
   stops.push(startTelegram(registry));
+  stops.push(() => { for (const e of registry.all()) closeMcp(e.company.id).catch(() => {}); });
   return { registry, stop: () => stops.forEach((s) => s()) };
+}
+
+/** Connect every MCP bridge the company declares so its tools are known before the first run. Failures are logged, never fatal. */
+export async function warmBridges(e: Entry): Promise<void> {
+  const entries = (e.loaded.config.integrations ?? []).filter(isMcpEnable);
+  if (!entries.length) return;
+  await closeMcp(e.company.id);
+  const secrets = resolver(e.company.id);
+  for (const en of entries) {
+    const c = await connectMcp(e.company.id, en, secrets, e.loaded.dir);
+    if (c.error) console.warn(`[worker] ${e.company.slug}: MCP "${en.name}" failed: ${c.error}`);
+    else console.log(`[worker] ${e.company.slug}: MCP "${en.name}" — ${c.tools.length} tools`);
+  }
 }

@@ -179,8 +179,37 @@ and never includes secret values.
 | `blog` | read, publish | GitHub OAuth or GITHUB_ACCESS_TOKEN + BLOG_REPO (Markdown commits, host deploys) |
 | `instagram` | read, publish | Meta login (instagram_content_publish) |
 
-Next in line: `razorpay`/`stripe` (payment links exist as core tools; the
-webhooks that post revenue), `github` (the core tools shell out to `gh`
-today), `whatsapp` (Meta Cloud API), `google-drive`, `notion`, and an MCP
-bridge that turns any MCP server into an integration with a board-assigned
-class.
+Revenue webhooks for Razorpay and Stripe are core (see treasury.md), and
+any MCP server can be attached as an integration (below). Next in line:
+`whatsapp` (Meta Cloud API), `google-drive`, `notion`, and a `github`
+integration to replace the `gh` shell-outs.
+
+## Attach an MCP server
+
+Any MCP server becomes an integration with a board-assigned side-effect
+class. Tools surface as `<name>.<tool>` and pass the same gate as built-in
+methods, so an MCP server can never publish, spend or send without the same
+approvals.
+
+```yaml
+integrations:
+  - mcp: "npx -y @modelcontextprotocol/server-filesystem ./workspace"   # stdio command
+    name: files
+    side_effect: write                 # class for every tool unless overridden
+    overrides: { read_file: read, list_directory: read }
+  - mcp: "https://mcp.example.com/mcp"                                    # Streamable HTTP
+    name: crm
+    side_effect: send
+    headers: { Authorization: "Bearer vault:CRM_TOKEN" }                  # vault:NAME is resolved, never logged
+    env: { API_KEY: "vault:CRM_TOKEN" }                                   # for stdio servers
+roles:
+  - id: ops
+    tools: [files.*, crm.create_lead]
+```
+
+The worker connects at start (and after every Settings apply), lists the
+server's tools, and shows them under **Integrations → MCP servers** with
+their class. A server that fails to connect is retried on the next call;
+its tools are simply absent until then. Patterns under a declared bridge
+name validate even before the first connection.
+

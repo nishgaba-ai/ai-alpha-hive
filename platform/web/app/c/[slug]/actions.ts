@@ -1,22 +1,17 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
-import { getSession } from "../../../lib/auth";
-import { assertCan } from "../../../lib/rbac";
+import { requireCompany } from "../../../lib/company-access";
 import { audit } from "../../../lib/audit";
 import { hive } from "../../../lib/hive";
 
-async function board() {
-  const session = await getSession();
-  if (!session) redirect("/login");
-  assertCan(session, "product:deploy"); // owner/admin/developer may decide; viewers cannot
-  return session;
-}
+// Every action names the company permission it needs (lib/rbac.ts
+// COMPANY_MATRIX): owners do everything, reviewers approve and steer
+// missions, viewers only look.
 
 export async function decide(form: FormData) {
-  const session = await board();
   const slug = String(form.get("slug"));
+  const session = await requireCompany(slug, "company:approve");
   const id = String(form.get("id"));
   const decision = String(form.get("decision")) as "approved" | "denied";
   const note = String(form.get("note") ?? "") || undefined;
@@ -26,8 +21,8 @@ export async function decide(form: FormData) {
 }
 
 export async function startMission(form: FormData) {
-  const session = await board();
   const slug = String(form.get("slug"));
+  const session = await requireCompany(slug, "company:mission");
   const text = String(form.get("text") ?? "").trim();
   if (!text) return;
   await hive(`/api/companies/${slug}/missions`, { method: "POST", body: JSON.stringify({ text, by: session.email }) });
@@ -36,8 +31,8 @@ export async function startMission(form: FormData) {
 }
 
 export async function setCompanyStatus(form: FormData) {
-  const session = await board();
   const slug = String(form.get("slug"));
+  const session = await requireCompany(slug, "company:config");
   const action = String(form.get("action")) === "pause" ? "pause" : "resume";
   await hive(`/api/companies/${slug}/${action}`, { method: "POST" });
   audit(`company.${action}`, { actorId: session.userId, orgId: session.orgId, resource: slug });
@@ -45,8 +40,8 @@ export async function setCompanyStatus(form: FormData) {
 }
 
 export async function createTask(form: FormData) {
-  await board();
   const slug = String(form.get("slug"));
+  await requireCompany(slug, "company:mission");
   const body = {
     title: String(form.get("title") ?? "").trim(),
     intent: String(form.get("intent") ?? "").trim() || undefined,
@@ -61,8 +56,8 @@ export async function createTask(form: FormData) {
 }
 
 export async function updateTask(form: FormData) {
-  await board();
   const slug = String(form.get("slug"));
+  await requireCompany(slug, "company:mission");
   const id = String(form.get("id"));
   const status = String(form.get("status") ?? "") || undefined;
   await hive(`/api/companies/${slug}/tasks/${id}`, { method: "PATCH", body: JSON.stringify({ status }) });

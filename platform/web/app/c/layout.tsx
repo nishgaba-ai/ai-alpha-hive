@@ -1,18 +1,25 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getSession } from "../../lib/auth";
+import { getSession, listMemberships } from "../../lib/auth";
+import { canCompany } from "../../lib/rbac";
 import { hiveOr, workerUp, type CompanySummary } from "../../lib/hive";
 import { logout } from "../(site)/login/actions";
 import { ThemeToggle } from "../../components/ThemeToggle";
 import { CompanySwitcher } from "../../components/company/CompanySwitcher";
+import { OrgSwitcher } from "../../components/company/OrgSwitcher";
+import { switchOrg } from "./switch-org/actions";
 
 // Group shell: the board's view across every vertical. Session-guarded.
 export default async function GroupLayout({ children }: { children: React.ReactNode }) {
   const session = await getSession();
   if (!session) redirect("/login?next=/c");
   const up = await workerUp();
-  const companies = up ? await hiveOr<CompanySummary[]>("/api/companies", []) : [];
+  // The switcher and the pending badge only cover companies this user can view.
+  const companies = (up ? await hiveOr<CompanySummary[]>("/api/companies", []) : []).filter((c) => canCompany(session, c.slug, "company:view"));
   const pending = companies.reduce((s, c) => s + c.pending_approvals, 0);
+  // The organisation menu only appears once an invite has put this person
+  // in a second org; with one membership there is nothing to switch.
+  const orgs = listMemberships(session.userId);
 
   return (
     <div className="min-h-screen">
@@ -36,6 +43,7 @@ export default async function GroupLayout({ children }: { children: React.ReactN
               </Link>
             ) : null}
             <ThemeToggle />
+            {orgs.length > 1 ? <OrgSwitcher orgs={orgs} currentOrgId={session.orgId} action={switchOrg} /> : null}
             <span className="hidden max-w-[180px] truncate text-[var(--muted)] xl:inline">{session.email}</span>
             <form action={logout}>
               <button type="submit" className="btn btn-ghost px-2.5 py-1.5 text-[13px]">Sign out</button>

@@ -8,6 +8,10 @@ import { all, getDb, newId, one, run } from "../db.js";
 import * as ledger from "../ledger.js";
 import { setSecret, secretNames } from "../vault.js";
 import { fail } from "../integrations/registry.js";
+import { requestCard, issueCard, setCardFrozen, cardById, providerFor } from "../cards/index.js";
+import { createInvoice, invoiceById, setInvoiceStatus } from "../invoices.js";
+import { dnsProvider } from "../infra/dns.js";
+import { registrar } from "../infra/registrar.js";
 import type { AgentRow, TaskRow, ToolContext, ToolHandler, ToolResult } from "../types.js";
 
 const exec = promisify(execFile);
@@ -268,16 +272,23 @@ export const coreHandlers: Record<string, ToolHandler> = {
   },
   async "card.request"(ctx, input) {
     if ((ctx.config.treasury.card_provider ?? "none") === "none") return fail("ledger_only", "this company runs ledger-only (no card provider); budgets and approvals still apply, the board pays approved items by hand");
-    const id = newId();
-    run("INSERT INTO cards (id, company_id, wallet_id, provider, controls_json, status, created_at) VALUES (?,?,?,?,?,'requested',?)",
-      id, ctx.company.id, ctx.agent.wallet_id, ctx.config.treasury.card_provider, JSON.stringify({ per_tx: input.per_tx, monthly: input.monthly, categories: input.categories, purpose: input.purpose }), now());
-    ctx.emit("card.issued", { card_id: id, status: "requested" });
-    return { ok: true, card_id: id, status: "requested — the worker issues it with spending controls once the board approves" };
+    const card = requestCard(ctx.company, ctx.config, ctx.agent, { per_tx: input.per_tx as number | undefined, monthly: input.monthly as number | undefined, categories: input.categories as string[] | undefined, purpose: String(input.purpose ?? "") });
+    // The gate already parked this call and the board approved it; issue now.
+    try {
+      const issued = await issueCard(ctx.company, ctx.config, card.id);
+      return { ok: true, card_id: issued.id, status: issued.status, last4: issued.last4, hint: "the card number stays with the provider; purchases are authorised against your wallet in real time" };
+    } catch (e) {
+      return { ok: false, card_id: card.id, error: { code: "issue_failed", hint: (e as Error).message }, status: "requested" };
+    }
   },
   async "card.freeze"(ctx, input) {
-    const c = one<{ wallet_id: string }>("SELECT wallet_id FROM cards WHERE company_id = ? AND id = ?", ctx.company.id, String(input.card_id));
+    const c = cardById(ctx.company.id, String(input.card_id));
     if (!c || c.wallet_id !== ctx.agent.wallet_id) return fail("not_yours", "you can only freeze your own card");
-    run("UPDATE cards SET status = 'frozen' WHERE id = ?", String(input.card_id));
+    try {
+      await setCardFrozen(ctx.company, ctx.config, c.id, true);
+    } catch (e) {
+      return fail("provider_error", (e as Error).message);
+    }
     return { ok: true };
   },
   async "card.purchase"(ctx, input) {
@@ -293,7 +304,44 @@ export const coreHandlers: Record<string, ToolHandler> = {
     return { ok: true, journal_id: journal, mode };
   },
   async "card.transactions"(ctx) {
-    return { ok: true, entries: ledger.entries(ctx.company.id, 100, ledger.walletAccount(ctx.agent.id)) };
+    const provider = providerFor(ctx.config);
+    const card = one<{ provider_card_id: string | null }>("SELECT provider_card_id FROM cards WHERE company_id = ? AND wallet_id = ? AND status = 'active'", ctx.company.id, ctx.agent.wallet_id);
+    let provider_entries: unknown[] = [];
+    if (provider && card?.provider_card_id) {
+      try {
+        provider_entries = await provider.transactions(ctx.secrets, card.provider_card_id, 50);
+      } catch (e) {
+        provider_entries = [{ error: (e as Error).message }];
+      }
+    }
+    return { ok: true, entries: ledger.entries(ctx.company.id, 100, ledger.walletAccount(ctx.agent.id)), provider_entries };
+  },
+  async "invoice.create"(ctx, input) {
+    try {
+      const inv = createInvoice(ctx.company.id, {
+        customer_name: String(input.customer_name), customer_email: input.customer_email as string | undefined, customer_gstin: input.customer_gstin as string | undefined,
+        place_of_supply: input.place_of_supply as string | undefined, due_on: input.due_on as string | undefined, notes: input.notes as string | undefined,
+        currency: ctx.company.currency, created_by: ctx.agent.id,
+        items: input.items as { description: string; hsn_sac?: string; quantity?: number; unit_minor: number; gst_rate?: number }[],
+      }, { prefix: ctx.config.treasury.invoice_prefix, companyState: ctx.config.treasury.gst_state });
+      ctx.emit("artifact.created", { kind: "invoice", ref: inv.number, invoice_id: inv.id, total_minor: inv.total_minor });
+      return { ok: true, invoice_id: inv.id, number: inv.number, total_minor: inv.total_minor, cgst_minor: inv.cgst_minor, sgst_minor: inv.sgst_minor, igst_minor: inv.igst_minor };
+    } catch (e) {
+      return fail("bad_invoice", (e as Error).message);
+    }
+  },
+  async "invoice.send"(ctx, input) {
+    const inv = invoiceById(ctx.company.id, String(input.invoice_id));
+    if (!inv) return fail("not_found", "no such invoice");
+    if (!inv.customer_email) return fail("no_email", "the invoice has no customer email; ask the board to add one");
+    let link = inv.payment_link ?? undefined;
+    if (!link) {
+      const r = await coreHandlers["payment-link.create"](ctx, { amount: inv.total_minor, currency: inv.currency, description: `${inv.number} - ${ctx.company.name}`, customer_email: inv.customer_email });
+      if (r.ok) link = String(r.url);
+    }
+    setInvoiceStatus(ctx.company.id, inv.id, "sent", { payment_link: link });
+    const publicUrl = process.env.HIVE_PUBLIC_URL ?? "";
+    return { ok: true, status: "sent", payment_link: link ?? null, hint: `email the customer with email.send; printable copy: ${publicUrl}/api/companies/${ctx.company.slug}/erp/invoices/${inv.id}/html` };
   },
   async "payment-link.create"(ctx, input) {
     const rz = ctx.secrets.get("RAZORPAY_KEY_ID");
@@ -348,20 +396,43 @@ export const coreHandlers: Record<string, ToolHandler> = {
   async "infra.secret.list"(ctx) {
     return { ok: true, names: secretNames(ctx.company.id) };
   },
-  async "infra.domain.search"(_ctx, input) {
-    const name = String(input.name);
+  async "infra.domain.search"(ctx, input) {
     try {
-      const res = await fetch(`https://rdap.org/domain/${encodeURIComponent(name)}`);
-      return { ok: true, name, registered: res.status === 200, hint: res.status === 200 ? "taken" : "appears available; price via the registrar module (not yet wired)" };
+      const q = await registrar(ctx.secrets).quote(ctx.secrets, String(input.name).toLowerCase());
+      return { ok: true, ...q };
     } catch (e) {
       return fail("lookup_failed", (e as Error).message);
     }
   },
-  async "infra.domain.buy"() {
-    return fail("not_configured", "registrar module not wired yet; the board buys the domain and stores DNS credentials");
+  async "infra.domain.buy"(ctx, input) {
+    const r = registrar(ctx.secrets);
+    const name = String(input.name).toLowerCase();
+    const years = Number(input.years ?? 1);
+    const res = await r.buy(ctx.secrets, name, years);
+    if (!res.ok && r.id === "manual") {
+      const id = newId();
+      run(
+        `INSERT INTO tasks (id, company_id, parent_id, mission_id, title, intent, acceptance, owner_role, status, budget_cap, priority, created_by, created_at, updated_at)
+         VALUES (?,?,?,?,?,?,?,'human','ready',0,2,?,?,?)`,
+        id, ctx.company.id, ctx.run.task_id, taskRow(ctx, ctx.run.task_id)?.mission_id ?? ctx.run.task_id, `Buy domain ${name}`,
+        `${input.reason}. Register ${name} for ${years} year(s) at the registrar, then store CLOUDFLARE_API_TOKEN so agents can set DNS.`, "domain registered and DNS credentials stored", ctx.agent.id, now(), now(),
+      );
+      ctx.emit("task.planned", { task_id: id, title: `Buy domain ${name}`, human: true });
+      return { ok: false, error: { code: "board_buys", hint: res.detail }, task_id: id };
+    }
+    if (res.ok) ctx.emit("artifact.created", { kind: "domain", ref: name, order_id: res.order_id });
+    return res.ok ? { ok: true, order_id: res.order_id, detail: res.detail } : fail("registrar_failed", res.detail);
   },
-  async "infra.dns.set"() {
-    return fail("not_configured", "DNS provider module not wired yet");
+  async "infra.dns.set"(ctx, input) {
+    const p = dnsProvider(ctx.secrets);
+    if (!p) return fail("not_configured", "store CLOUDFLARE_API_TOKEN (Zone:DNS:Edit) in the vault");
+    try {
+      const r = await p.set(ctx.secrets, String(input.domain), input.record as { type: "A" | "AAAA" | "CNAME" | "TXT" | "MX"; name: string; content: string; ttl?: number; proxied?: boolean; priority?: number });
+      ctx.emit("infra.dns.set", { domain: input.domain, record: input.record, zone: r.zone });
+      return { ok: true, record_id: r.id, zone: r.zone };
+    } catch (e) {
+      return fail("dns_failed", (e as Error).message);
+    }
   },
   async "github.pr.open"(ctx, input) {
     return gh(ctx, ["pr", "create", "--repo", String(input.repo), "--head", String(input.branch), "--title", String(input.title), "--body", String(input.body)]);

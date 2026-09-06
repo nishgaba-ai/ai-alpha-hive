@@ -51,6 +51,10 @@ export function importBundle(bundle: Bundle, targetRoot: string): { dirs: string
   }
   const db = getDb();
   let rows = 0;
+  // Rows arrive in TABLES order, which is not FK order (agents reference
+  // wallets, items reference runs); the bundle is internally consistent, so
+  // suspend FK checks for the transaction and verify afterwards.
+  db.pragma("foreign_keys = OFF");
   const tx = db.transaction(() => {
     for (const t of TABLES) {
       const list = bundle.tables[t] ?? [];
@@ -61,6 +65,12 @@ export function importBundle(bundle: Bundle, targetRoot: string): { dirs: string
       }
     }
   });
-  tx();
+  try {
+    tx();
+    const violations = db.pragma("foreign_key_check") as unknown[];
+    if (violations.length) throw new Error(`bundle has ${violations.length} dangling references`);
+  } finally {
+    db.pragma("foreign_keys = ON");
+  }
   return { dirs, rows };
 }

@@ -237,12 +237,24 @@ export function readyDependents(companyId: string, doneTaskId: string): void {
 
 /** Board decision → resume the parked run. */
 export async function decideApproval(deps: LoopDeps, approvalId: string, decision: "approved" | "denied", by: string, note?: string): Promise<void> {
-  const a = one<{ id: string; run_id: string; status: string; tool: string }>("SELECT id, run_id, status, tool FROM approvals WHERE id = ? AND company_id = ?", approvalId, deps.company.id);
+  const a = one<{ id: string; run_id: string; status: string; tool: string; request_json: string }>("SELECT id, run_id, status, tool, request_json FROM approvals WHERE id = ? AND company_id = ?", approvalId, deps.company.id);
   if (!a) throw new Error("no such approval");
   if (a.status !== "pending") throw new Error(`approval already ${a.status}`);
   sql("UPDATE approvals SET status = ?, decided_by = ?, decided_at = ?, reason = ? WHERE id = ?", decision, by, Date.now(), note ?? null, a.id);
   emit(deps.company.id, "approval.decided", { approval_id: a.id, decision, by, tool: a.tool }, { runId: a.run_id });
   const runRow = one<RunRow>("SELECT * FROM runs WHERE id = ?", a.run_id)!;
+  let req: { harness?: string; input?: Record<string, unknown> } = {};
+  try {
+    req = JSON.parse(a.request_json);
+  } catch {
+    /* malformed request_json: treat as an API-harness approval */
+  }
+  if (req.harness === "claude-code") {
+    // Dynamic import: claude-code.ts imports this module, so a static import would be a cycle.
+    const { resumeClaudeCode } = await import("./claude-code.js");
+    await resumeClaudeCode(deps, runRow, { approvalId: a.id, tool: a.tool, decision, note, input: req.input ?? {} });
+    return;
+  }
   await runLoop(deps, runRow, { decision, note });
 }
 
