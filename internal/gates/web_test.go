@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -96,5 +97,28 @@ func TestSEOGateWarningDoesNotFail(t *testing.T) {
 	}
 	if len(res.Findings) != 2 { // openGraph warning + JSON-LD warning
 		t.Fatalf("want 2 warnings, got %d: %+v", len(res.Findings), res.Findings)
+	}
+}
+
+func TestLinksGateDynamicRoutes(t *testing.T) {
+	dir := t.TempDir()
+	mk := func(rel, content string) {
+		p := filepath.Join(dir, rel)
+		if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	mk("app/page.tsx", `<a href="/docs">d</a><a href="/docs/getting-started">g</a><a href="/c/prodigal-ai/inbox">i</a><a href="/nope">n</a>`)
+	mk("app/(site)/docs/[[...slug]]/page.tsx", "export default function P(){return null}")
+	mk("app/c/[slug]/inbox/page.tsx", "export default function P(){return null}")
+	res, err := (&LinksGate{}).Check(context.Background(), dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(res.Findings) != 1 || !strings.Contains(res.Findings[0].Message, "/nope") {
+		t.Fatalf("expected only /nope to fail, got %+v", res.Findings)
 	}
 }

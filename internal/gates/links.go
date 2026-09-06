@@ -29,6 +29,7 @@ func (g *LinksGate) Check(ctx context.Context, dir string) (Result, error) {
 	}
 
 	routes := collectRoutes(appDir)
+	patterns := collectDynamicRoutes(appDir)
 	publicFiles := collectPublic(filepath.Join(dir, "public"))
 
 	seen := map[string]bool{}
@@ -56,7 +57,7 @@ func (g *LinksGate) Check(ctx context.Context, dir string) (Result, error) {
 			if link == "" {
 				link = "/"
 			}
-			if routes[link] || publicFiles[link] || seen[rel+link] {
+			if routes[link] || publicFiles[link] || seen[rel+link] || matchesDynamic(patterns, link) {
 				continue
 			}
 			seen[rel+link] = true
@@ -100,6 +101,57 @@ func collectRoutes(appDir string) map[string]bool {
 	})
 	routes["/"] = routes["/"] || hasPage(appDir)
 	return routes
+}
+
+// collectDynamicRoutes turns Next.js dynamic segments into patterns:
+// [slug] → one segment, [...slug] → one or more, [[...slug]] → zero or more
+// (so /docs and /docs/a/b both resolve to app/docs/[[...slug]]/page.tsx).
+func collectDynamicRoutes(appDir string) []*regexp.Regexp {
+	var out []*regexp.Regexp
+	filepath.WalkDir(appDir, func(path string, d fs.DirEntry, err error) error {
+		if err != nil || d.IsDir() {
+			return nil
+		}
+		name := d.Name()
+		if name != "page.tsx" && name != "page.jsx" && name != "page.mdx" {
+			return nil
+		}
+		rel, _ := filepath.Rel(appDir, filepath.Dir(path))
+		if !strings.Contains(rel, "[") {
+			return nil
+		}
+		var re strings.Builder
+		re.WriteString("^")
+		for _, p := range strings.Split(filepath.ToSlash(rel), "/") {
+			switch {
+			case p == "." || p == "" || (strings.HasPrefix(p, "(") && strings.HasSuffix(p, ")")):
+				continue
+			case strings.HasPrefix(p, "[[...") && strings.HasSuffix(p, "]]"):
+				re.WriteString("(/[^/]+)*")
+			case strings.HasPrefix(p, "[...") && strings.HasSuffix(p, "]"):
+				re.WriteString("(/[^/]+)+")
+			case strings.HasPrefix(p, "[") && strings.HasSuffix(p, "]"):
+				re.WriteString("/[^/]+")
+			default:
+				re.WriteString("/" + regexp.QuoteMeta(p))
+			}
+		}
+		re.WriteString("$")
+		if r, err := regexp.Compile(re.String()); err == nil {
+			out = append(out, r)
+		}
+		return nil
+	})
+	return out
+}
+
+func matchesDynamic(patterns []*regexp.Regexp, link string) bool {
+	for _, r := range patterns {
+		if r.MatchString(link) {
+			return true
+		}
+	}
+	return false
 }
 
 func hasPage(appDir string) bool {
