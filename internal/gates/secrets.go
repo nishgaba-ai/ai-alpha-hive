@@ -5,6 +5,7 @@ import (
 	"context"
 	"io/fs"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -44,6 +45,12 @@ var textExts = map[string]bool{
 	".env": true, ".toml": true, ".html": true, ".css": true, ".sh": true,
 }
 
+// gitIgnored reports whether git ignores path (false when git or a repo is absent).
+func gitIgnored(dir, path string) bool {
+	cmd := exec.Command("git", "-C", dir, "check-ignore", "-q", "--", path)
+	return cmd.Run() == nil
+}
+
 func (g *SecretsGate) Check(ctx context.Context, dir string) (Result, error) {
 	res := Result{Gate: g.Name(), Passed: true}
 	err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
@@ -66,6 +73,13 @@ func (g *SecretsGate) Check(ctx context.Context, dir string) (Result, error) {
 			return nil
 		}
 		rel, _ := filepath.Rel(dir, path)
+		// An env file git already ignores is runtime configuration that never
+		// reaches source control (e.g. .env.deploy shipped to a box as
+		// --env-file). Real credentials belong there; scanning it would only
+		// block legitimate deploys. Committed env files are still scanned.
+		if strings.HasPrefix(base, ".env") && gitIgnored(dir, path) {
+			return nil
+		}
 		findings := scanFile(path, rel)
 		if len(findings) > 0 {
 			res.Findings = append(res.Findings, findings...)

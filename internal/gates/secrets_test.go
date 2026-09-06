@@ -3,6 +3,7 @@ package gates
 import (
 	"context"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -67,5 +68,30 @@ func TestSecretsGateSkipsNodeModules(t *testing.T) {
 	}
 	if !res.Passed {
 		t.Fatalf("node_modules should be skipped, got findings: %+v", res.Findings)
+	}
+}
+
+func TestSecretsGateSkipsGitIgnoredEnv(t *testing.T) {
+	if _, err := exec.LookPath("git"); err != nil {
+		t.Skip("git not available")
+	}
+	dir := t.TempDir()
+	run := func(args ...string) {
+		c := exec.Command("git", append([]string{"-C", dir}, args...)...)
+		if out, err := c.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %s", args, out)
+		}
+	}
+	run("init", "-q")
+	os.WriteFile(filepath.Join(dir, ".gitignore"), []byte(".env.deploy\n"), 0o644)
+	key := "sk-ant-" + strings.Repeat("a", 40)
+	os.WriteFile(filepath.Join(dir, ".env.deploy"), []byte("ANTHROPIC_API_KEY="+key+"\n"), 0o644)
+	os.WriteFile(filepath.Join(dir, ".env.committed"), []byte("ANTHROPIC_API_KEY="+key+"\n"), 0o644)
+	res, err := (&SecretsGate{}).Check(context.Background(), dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(res.Findings) != 1 || res.Findings[0].File != ".env.committed" {
+		t.Fatalf("expected only .env.committed flagged, got %+v", res.Findings)
 	}
 }
