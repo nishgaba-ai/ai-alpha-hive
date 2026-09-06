@@ -33,7 +33,7 @@ export default async function ErpPage({ params, searchParams }: { params: Promis
     <main>
       <PageTitle eyebrow="Under one roof" title="ERP">
         {tabs.map((t) => (
-          <a key={t} href={`/c/${slug}/erp?tab=${t}`} className={`btn ${t === tab ? "btn-glass" : "btn-ghost"}`}>{sentence(t)}</a>
+          <a key={t} href={`/c/${slug}/erp?tab=${t}`} className={`btn ${t === tab ? "btn-glass" : "btn-ghost"}`}>{t === "gst" ? "GST" : sentence(t)}</a>
         ))}
       </PageTitle>
       <div className="mb-5 grid gap-4 sm:grid-cols-4">

@@ -71,7 +71,7 @@ export function PageTitle({ eyebrow, title, children }: { eyebrow?: string; titl
         {eyebrow ? <Label className="mb-1">{eyebrow}</Label> : null}
         <h1 className="font-display text-3xl font-medium leading-tight sm:text-4xl">{title}</h1>
       </div>
-      {children ? <div className="flex items-center gap-2">{children}</div> : null}
+      {children ? <div className="flex flex-wrap items-center gap-2">{children}</div> : null}
     </div>
   );
 }

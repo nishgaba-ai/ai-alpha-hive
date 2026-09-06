@@ -52,7 +52,7 @@ export default async function TreasuryPage({ params, searchParams }: { params: P
       <Label className="mb-2 mt-6">Cards</Label>
       <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
         <Card>
-          {t.cards.length === 0 ? <Empty>{t.card_provider ? "No cards yet. An agent calls card.request; you approve it in the Inbox; the worker issues it." : "Ledger-only: agents place holds, you pay approved items by hand."}</Empty> : null}
+          {(t.cards ?? []).length === 0 ? <Empty>{t.card_provider ? "No cards yet. An agent calls card.request; you approve it in the Inbox; the worker issues it." : "Ledger-only: agents place holds, you pay approved items by hand."}</Empty> : null}
           <div className="space-y-2">
             {t.cards.map((c) => {
               const ctl = JSON.parse(c.controls_json || "{}") as { per_tx?: number; monthly?: number; purpose?: string; categories?: string[] };
@@ -91,12 +91,12 @@ export default async function TreasuryPage({ params, searchParams }: { params: P
           )}
           <Label className="mb-1 mt-4">Revenue webhooks</Label>
           <p className="text-xs text-[var(--muted)]">Stripe Checkout / Payment Links:</p>
-          <code className="mt-1 block break-all rounded-[var(--r-1)] bg-[var(--surface-0)] p-2 font-mono text-[11px]">{t.revenue_webhooks.stripe}</code>
+          <code className="mt-1 block break-all rounded-[var(--r-1)] bg-[var(--surface-0)] p-2 font-mono text-[11px]">{t.revenue_webhooks?.stripe ?? "(worker update pending)"}</code>
           <p className="mt-2 text-xs text-[var(--muted)]">Razorpay (payment_link.paid), secret RAZORPAY_WEBHOOK_SECRET:</p>
-          <code className="mt-1 block break-all rounded-[var(--r-1)] bg-[var(--surface-0)] p-2 font-mono text-[11px]">{t.revenue_webhooks.razorpay}</code>
+          <code className="mt-1 block break-all rounded-[var(--r-1)] bg-[var(--surface-0)] p-2 font-mono text-[11px]">{t.revenue_webhooks?.razorpay ?? "(worker update pending)"}</code>
         </Card>
       </div>
-      {t.webhook_events.length ? (
+      {t.webhook_events?.length ? (
         <>
           <Label className="mb-2 mt-6">Webhooks received</Label>
           <Card>
