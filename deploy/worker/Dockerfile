@@ -11,6 +11,8 @@ RUN apk add --no-cache git python3 make g++
 ARG REPO=https://github.com/nishgaba-ai/ai-alpha-hive.git
 ARG REF=main
 WORKDIR /src
+# cache-buster: the branch head changes → the clone layer is rebuilt
+ADD https://api.github.com/repos/nishgaba-ai/ai-alpha-hive/git/refs/heads/main /tmp/head.json
 RUN git clone --depth 1 --branch "$REF" "$REPO" . && cd runtime && npm ci --no-audit --no-fund && npm run build
 
 FROM node:22-alpine
