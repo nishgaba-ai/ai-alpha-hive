@@ -64,9 +64,16 @@ export default async function TasksPage({ params }: { params: Promise<{ slug: st
                     {t.owner_role === "human" ? (
                       <form action={updateTask} className="mt-2 flex gap-1">
                         <input type="hidden" name="slug" value={slug} /><input type="hidden" name="id" value={t.id} />
-                        {t.status !== "running" ? <button name="status" value="running" className="btn btn-ghost py-0.5 text-xs">start</button> : null}
-                        {t.status !== "done" ? <button name="status" value="done" className="btn btn-ghost py-0.5 text-xs">done</button> : null}
-                        {t.status !== "cancelled" ? <button name="status" value="cancelled" className="btn btn-ghost py-0.5 text-xs">drop</button> : null}
+                        {t.status !== "running" ? <button name="status" value="running" className="btn btn-ghost py-0.5 text-xs">Start</button> : null}
+                        {t.status !== "done" ? <button name="status" value="done" className="btn btn-ghost py-0.5 text-xs">Done</button> : null}
+                        {t.status !== "cancelled" ? <button name="status" value="cancelled" className="btn btn-ghost py-0.5 text-xs">Drop</button> : null}
+                      </form>
+                    ) : null}
+                    {t.owner_role !== "human" && t.status === "failed" ? (
+                      <form action={updateTask} className="mt-2 flex gap-1">
+                        <input type="hidden" name="slug" value={slug} /><input type="hidden" name="id" value={t.id} />
+                        <button name="status" value="ready" className="btn btn-ghost py-0.5 text-xs">Retry</button>
+                        <button name="status" value="cancelled" className="btn btn-ghost py-0.5 text-xs">Drop</button>
                       </form>
                     ) : null}
                   </div>
