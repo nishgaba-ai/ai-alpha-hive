@@ -3,7 +3,7 @@
 
 import type { CompanyConfig, Decision, Policies, RoleConfig, SideEffect, ToolSpec } from "./types.js";
 import * as ledger from "./ledger.js";
-import { knownContact } from "../integrations/postmark/index.js";
+import { knownContact } from "./contacts.js";
 
 export type GateInput = {
   config: CompanyConfig;

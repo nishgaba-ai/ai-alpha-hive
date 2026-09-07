@@ -29,6 +29,8 @@ import { importBankCsv, PRESETS as BANK_PRESETS, type ColumnMap } from "./bank-i
 import { bridgeStatus } from "./integrations/mcp-bridge.js";
 import { isMcpEnable } from "./loader.js";
 import { latestIntake, intakes, submitIntake, composeMission, type Intake } from "./intake.js";
+import { handleMetaWebhook, verifySubscription } from "./webhooks-meta.js";
+import { listInbound, threads as inboundThreads, markRead as markInboundRead } from "./inbound.js";
 import type { Registry, Entry } from "./registry.js";
 import type { AgentRow, ApprovalRow, RunRow, TaskRow } from "./types.js";
 import fs from "node:fs";
@@ -283,8 +285,11 @@ export function startServer(registry: Registry, port: number, opts: { onReload?:
       const i = integrationById(p.id);
       const auth = i?.auth;
       if (!i || !auth || auth.kind !== "oauth2") return json(res, 400, { error: "this integration does not use OAuth" });
+      // one token per prefix: ask for every scope of the enabled integrations sharing it
+      const enabled = new Set(all<{ integration_id: string }>("SELECT integration_id FROM integrations_enabled WHERE company_id = ?", e.company.id).map((r) => r.integration_id));
+      const extra = INTEGRATIONS.filter((x) => x.id !== i.id && x.auth?.kind === "oauth2" && x.auth.prefix === auth.prefix && enabled.has(x.id)).flatMap((x) => (x.auth as { scopes: string[] }).scopes);
       try {
-        json(res, 200, startOAuth(e.company.id, e.company.slug, i.id, auth, resolver(e.company.id)));
+        json(res, 200, startOAuth(e.company.id, e.company.slug, i.id, auth, resolver(e.company.id), extra));
       } catch (err) {
         json(res, 400, { error: (err as Error).message });
       }
@@ -533,6 +538,33 @@ export function startServer(registry: Registry, port: number, opts: { onReload?:
       const raw = (await rawBody(req)).toString("utf8");
       const r = await handleRazorpay({ company: e.company, config: e.loaded.config }, raw, req.headers["x-razorpay-signature"] as string | undefined, req.headers["x-razorpay-event-id"] as string | undefined);
       json(res, r.status, r.body);
+    }),
+
+    route("GET", "/api/webhooks/meta/:slug", (_r, res, p, url) => {
+      const e = need(p.slug);
+      const challenge = verifySubscription(url.searchParams, resolver(e.company.id));
+      if (challenge === null) return json(res, 403, { error: "verify token mismatch" });
+      res.writeHead(200, { "Content-Type": "text/plain" });
+      res.end(challenge);
+    }),
+    route("POST", "/api/webhooks/meta/:slug", async (req, res, p) => {
+      const e = need(p.slug);
+      const raw = (await rawBody(req)).toString("utf8");
+      const r = handleMetaWebhook(e.company.id, resolver(e.company.id), raw, req.headers["x-hub-signature-256"] as string | undefined);
+      json(res, r.status, r.body);
+    }),
+
+    // inbound conversations (WhatsApp, Instagram DMs, Messenger…)
+    route("GET", "/api/companies/:slug/inbound", (_r, res, p, url) => {
+      const q = url.searchParams;
+      json(res, 200, listInbound(need(p.slug).company.id, { channel: q.get("channel") ?? undefined, thread_id: q.get("thread_id") ?? undefined, unread: q.get("unread") === "1", since: Number(q.get("since") ?? 0) || undefined, limit: Number(q.get("limit") ?? 50) }));
+    }),
+    route("GET", "/api/companies/:slug/inbound/threads", (_r, res, p, url) => json(res, 200, inboundThreads(need(p.slug).company.id, url.searchParams.get("channel") ?? undefined))),
+    route("POST", "/api/companies/:slug/inbound/read", async (req, res, p) => {
+      const e = need(p.slug);
+      const b = await body<{ ids?: string[]; channel?: string; thread_id?: string }>(req);
+      const n = b.ids?.length ? markInboundRead(e.company.id, b.ids) : b.channel && b.thread_id ? markInboundRead(e.company.id, { channel: b.channel, thread_id: b.thread_id }) : 0;
+      json(res, 200, { ok: true, marked: n });
     }),
 
     // invoices + GST

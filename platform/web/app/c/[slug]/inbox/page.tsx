@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { hive, hiveOr, money, ago, displayName, sentence, type Approval, type CompanySummary } from "../../../../lib/hive";
 import { Card, Badge, sideEffectTone, Empty, PageTitle } from "../../../../components/ui";
-import { decide } from "../actions";
+import { decide, markInboundRead } from "../actions";
+import { Conversations, type Thread, type Inbound } from "../../../../components/company/Conversations";
 
 export const dynamic = "force-dynamic";
 
@@ -13,16 +14,34 @@ function Preview({ a, currency }: { a: Approval; currency: string }) {
   return <pre className="mt-3 overflow-x-auto rounded-[var(--r-1)] bg-[var(--surface-0)] p-3 font-mono text-[11px] text-[var(--ink-2)]">{JSON.stringify(i, null, 2)}</pre>;
 }
 
-export default async function InboxPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ status?: string }> }) {
+export default async function InboxPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ status?: string; tab?: string; channel?: string; thread?: string }> }) {
   const { slug } = await params;
-  const { status = "pending" } = await searchParams;
-  const [c, items] = await Promise.all([hive<CompanySummary>(`/api/companies/${slug}`), hiveOr<Approval[]>(`/api/companies/${slug}/approvals?status=${status}`, [])]);
+  const { status = "pending", tab = "approvals", channel, thread } = await searchParams;
+  const [c, items, threads, messages] = await Promise.all([
+    hive<CompanySummary>(`/api/companies/${slug}`),
+    hiveOr<Approval[]>(`/api/companies/${slug}/approvals?status=${status}`, []),
+    hiveOr<Thread[]>(`/api/companies/${slug}/inbound/threads`, []),
+    channel && thread ? hiveOr<Inbound[]>(`/api/companies/${slug}/inbound?channel=${channel}&thread_id=${encodeURIComponent(thread)}&limit=100`, []) : Promise.resolve([] as Inbound[]),
+  ]);
+  const unread = threads.reduce((s, t) => s + t.unread, 0);
+  if (tab === "conversations") {
+    return (
+      <main>
+        <PageTitle eyebrow="The board's job" title="Inbox">
+          <Link href={`/c/${slug}/inbox`} className="btn btn-ghost">Approvals</Link>
+          <Link href={`/c/${slug}/inbox?tab=conversations`} className="btn btn-glass">Conversations{unread ? ` · ${unread}` : ""}</Link>
+        </PageTitle>
+        <Conversations slug={slug} threads={threads} open={channel && thread ? { channel, thread_id: thread } : undefined} messages={messages} markRead={markInboundRead} />
+      </main>
+    );
+  }
   return (
     <main>
       <PageTitle eyebrow="The board's job" title="Inbox">
         {["pending", "approved", "denied"].map((s) => (
           <Link key={s} href={`/c/${slug}/inbox?status=${s}`} className={`btn ${s === status ? "btn-glass" : "btn-ghost"}`}>{sentence(s)}</Link>
         ))}
+        <Link href={`/c/${slug}/inbox?tab=conversations`} className="btn btn-ghost">Conversations{unread ? ` · ${unread}` : ""}</Link>
       </PageTitle>
       {items.length === 0 ? <Empty>Nothing {status}.</Empty> : null}
       <div className="space-y-4">

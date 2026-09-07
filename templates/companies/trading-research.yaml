@@ -22,7 +22,7 @@ providers:
     base_url: http://localhost:11434/v1
 
 treasury:
-  monthly_cap: 40000
+  monthly_cap: 45000
   approval_threshold: 2000
   reserve: 8000
   card_provider: none
@@ -42,7 +42,7 @@ roles:
     model: anthropic/claude-fable-5-1
     effort: xhigh
     reports_to: board
-    tools: [task.*, agent.list, message.*, web.*, content.*, report.weekly, artifact.save, telegram.notify]
+    tools: [task.*, agent.list, message.*, web.*, content.*, report.weekly, artifact.save, telegram.notify, google-sheets.*, google-drive.*, notion.*, discord.*]
     budget: { monthly: 4000 }
     prompt: roles/head-of-research.md
 
@@ -52,7 +52,7 @@ roles:
     model: anthropic/claude-opus-5
     effort: xhigh
     reports_to: head
-    tools: [task.update, task.list, message.*, web.*, artifact.save, card.purchase, wallet.read]
+    tools: [task.update, task.list, message.*, web.*, artifact.save, card.purchase, wallet.read, google-sheets.*, google-drive.*]
     budget: { monthly: 12000, per_tx: 2000 }
     count: 2
     prompt: roles/quant.md
@@ -63,7 +63,7 @@ roles:
     model: anthropic/claude-opus-5
     effort: high
     reports_to: head
-    tools: [task.update, task.list, message.*, artifact.save, telegram.notify]
+    tools: [task.update, task.list, message.*, artifact.save, telegram.notify, google-sheets:read, notion.*]
     budget: { monthly: 3000 }
     prompt: roles/risk.md
 
@@ -73,7 +73,7 @@ roles:
     model: anthropic/claude-sonnet-5
     effort: medium
     reports_to: head
-    tools: [task.update, task.list, message.*, content:draft, email.send, artifact.save]
+    tools: [task.update, task.list, message.*, content:draft, email.send, artifact.save, gmail.*, notion.*, google-drive.*]
     budget: { monthly: 3000 }
     prompt: roles/writer.md
 
@@ -89,3 +89,14 @@ integrations:
     modes: [send, read]
   - id: telegram
     modes: [notify]
+
+  - id: google-sheets
+    modes: [read, write]
+  - id: google-drive
+    modes: [read, write]
+  - id: notion
+    modes: [read, write]
+  - id: discord
+    modes: [read, community]
+  - id: gmail
+    modes: [read, send]

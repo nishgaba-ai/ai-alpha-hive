@@ -4,13 +4,16 @@
   "private": true,
   "description": "Company runtime: providers (Anthropic, OpenRouter, Ollama, Claude Code), integrations library, side-effect gate, scheduler, ledger, control-plane API. Spawned by `hive company run`.",
   "type": "module",
-  "bin": { "hive-company": "dist/src/cli.js" },
+  "bin": {
+    "hive-company": "dist/src/cli.js"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsx src/cli.ts",
     "test": "vitest run",
     "check:manifest": "tsx scripts/check-manifest.ts",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "check:templates": "tsx scripts/check-templates.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.124.0",

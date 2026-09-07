@@ -54,7 +54,7 @@ export const TABLES = [
   "runs", "events", "approvals", "wallets", "ledger_entries", "cards",
   "artifacts", "messages", "secrets", "memory", "integrations_enabled", "contacts",
   "people", "payroll_runs", "payroll_items", "expenses", "time_entries", "cash_accounts", "cash_txns", "creators", "creator_events",
-  "invoices", "invoice_items", "webhook_events", "kv",
+  "invoices", "invoice_items", "webhook_events", "kv", "inbound_messages",
 ] as const;
 
 function migrate(d: DB) {
@@ -420,6 +420,23 @@ function migrate(d: DB) {
       outcome TEXT,
       UNIQUE (provider, event_id)
     );
+    -- inbound conversations from messaging channels (src/inbound.ts)
+    CREATE TABLE IF NOT EXISTS inbound_messages (
+      id TEXT PRIMARY KEY,
+      company_id TEXT NOT NULL,
+      channel TEXT NOT NULL,
+      external_id TEXT NOT NULL,
+      thread_id TEXT NOT NULL,
+      from_id TEXT NOT NULL,
+      from_name TEXT,
+      body TEXT NOT NULL,
+      media_json TEXT,
+      ts INTEGER NOT NULL,
+      read_at INTEGER,
+      replied_at INTEGER,
+      UNIQUE (company_id, channel, external_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_inbound_thread ON inbound_messages(company_id, channel, thread_id, ts);
     -- small per-company key/value store (provider ids such as the Stripe cardholder)
     CREATE TABLE IF NOT EXISTS kv (
       company_id TEXT NOT NULL,

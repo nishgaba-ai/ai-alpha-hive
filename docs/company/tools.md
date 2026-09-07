@@ -90,7 +90,7 @@ fail company load.
 | `infra.domain.buy` | spend | `name, years, reason` | Porkbun when its keys are in the vault, else a board task |
 | `infra.dns.set` | write | `domain, record{type,name,content,proxied?}` | Cloudflare (`CLOUDFLARE_API_TOKEN`) |
 | `github.pr.open` | write | `repo, branch, title, body` | via `gh` |
-| `github.pr.merge` | deploy | `pr, reason` | parks on the production branch |
+| `github.pr.merge` | deploy | `pr, reason` | always parks (merges ship code) |
 | `github.issue.create` | write | `repo, title, body` | |
 | `github.repo.create` | hire | `name, private` | always parks |
 
@@ -229,3 +229,154 @@ declared and validated today; the MCP client bridge lands with C4.)
    with its mode, and a row in this file's section for it.
 3. Add a gate fixture test if the class is not `read`/`write`.
 4. `npm run check:manifest`.
+
+## Integration: `google-drive`
+
+| Tool | Class | Mode | Input |
+|---|---|---|---|
+| `google-drive.search` | read | read | `query, limit?` — plain words or Drive query syntax |
+| `google-drive.get` | read | read | `file_id` |
+| `google-drive.read` | read | read | `file_id` — Docs → Markdown, Sheets → CSV (first sheet), Slides → text, text files ≤ 200 KB; 30k chars |
+| `google-drive.upload` | write | write | `name, content, mime_type?, folder_id?` |
+| `google-drive.create_folder` | write | write | `name, parent_id?` |
+| `google-drive.create_doc` | write | write | `title, markdown, folder_id?` — # headings become Docs headings |
+| `google-drive.share` | send | share | `file_id, role, to? \| anyone?, reason?` — first contact parks |
+
+## Integration: `google-sheets`
+
+| Tool | Class | Mode | Input |
+|---|---|---|---|
+| `google-sheets.list_sheets` | read | read | `spreadsheet_id` |
+| `google-sheets.read_range` | read | read | `spreadsheet_id, range` — ≤ 500 rows |
+| `google-sheets.append_rows` | write | write | `spreadsheet_id, range, rows[][]` — USER_ENTERED |
+| `google-sheets.update_range` | write | write | `spreadsheet_id, range, rows[][]` — USER_ENTERED |
+| `google-sheets.create_spreadsheet` | write | write | `title, sheets[]?` — returns id + url |
+
+## Integration: `google-calendar`
+
+| Tool | Class | Mode | Input |
+|---|---|---|---|
+| `google-calendar.list_events` | read | read | `calendar_id?, from?, to?, limit?` — default primary, next 7 days |
+| `google-calendar.free_busy` | read | read | `from, to, calendar_ids[]?` |
+| `google-calendar.create_event` | send | schedule | `title, start, end, description?, to[]?, location?, meet?, calendar_id?, time_zone?, reason?` — invites attendees; first contact parks |
+
+## Integration: `gmail`
+
+| Tool | Class | Mode | Input |
+|---|---|---|---|
+| `gmail.search` | read | read | `query, limit?` — Gmail query syntax; from, subject, date, snippet |
+| `gmail.read_thread` | read | read | `thread_id` — plain text, quotes stripped, 30k chars |
+| `gmail.send` | send | send | `to, subject?, body, thread_id?, in_reply_to_message_id?, reason?` — replies thread via In-Reply-To/References; first contact parks |
+
+## Integration: `whatsapp`
+
+| Tool | Class | Mode | Input |
+|---|---|---|---|
+| `whatsapp.templates` | read | read | `limit?` — needs WHATSAPP_BUSINESS_ACCOUNT_ID |
+| `whatsapp.inbox` | read | read | `thread_id?, unread?, since?, limit?` — local store, no network |
+| `whatsapp.threads` | read | read | `limit?` — local store, no network |
+| `whatsapp.mark_read` | write | read | `message_id` — read receipt + marks the inbox row |
+| `whatsapp.send_template` | send | send | `to, template, language?, params[]?, header_image_url?` — first contact parks; works outside the 24-hour window |
+| `whatsapp.send_text` | send | send | `to, text` — 24-hour window only; first contact parks |
+| `whatsapp.send_media` | send | send | `to, media_url, kind, caption?, filename?` — 24-hour window only; first contact parks |
+
+## Integration: `facebook`
+
+| Tool | Class | Mode | Input |
+|---|---|---|---|
+| `facebook.pages` | read | read | — |
+| `facebook.posts` | read | read | `limit?` |
+| `facebook.comments` | read | read | `post_id, limit?` |
+| `facebook.insights` | read | read | `metrics[]?, period?` |
+| `facebook.post` | publish | publish | `message, link?, media_url?, page_id?, reason` — parks |
+| `facebook.reply_comment` | send | engage | `comment_id, message` — public reply, parks as first contact |
+
+## Integration: `youtube`
+
+| Tool | Class | Mode | Input |
+|---|---|---|---|
+| `youtube.channel` | read | read | — |
+| `youtube.videos` | read | read | `limit?, query?` |
+| `youtube.analytics` | read | read | `from, to, metrics?, dimensions?, sort?, limit?` |
+| `youtube.comments` | read | read | `video_id, limit?, order?` |
+| `youtube.reply` | send | engage | `comment_id, text, reason` — no recipient, so first contact: parks |
+| `youtube.upload` | publish | publish | `video_url, title, description?, tags?, privacy?, category_id?, reason` — streams a public URL into a resumable upload, ≤ 512 MB, private by default; parks |
+| `youtube.update` | publish | publish | `video_id, title?, description?, tags?, privacy?, reason` — parks |
+
+## Integration: `tiktok`
+
+| Tool | Class | Mode | Input |
+|---|---|---|---|
+| `tiktok.profile` | read | read | — |
+| `tiktok.videos` | read | read | `limit?` |
+| `tiktok.publish` | publish | publish | `video_url, title, privacy?, reason` — pull-from-URL on a verified domain; SELF_ONLY unless the app is audited; parks |
+| `tiktok.status` | read | read | `publish_id` |
+
+## Integration: `discord`
+
+| Tool | Class | Mode | Input |
+|---|---|---|---|
+| `discord.channels` | read | read | — (needs `DISCORD_GUILD_ID`) |
+| `discord.read` | read | read | `channel_id, limit?` |
+| `discord.post` | publish | community | `channel_id?, content, reason` — bot token, or `DISCORD_WEBHOOK_URL` when no channel_id; ≤ 2000 chars; parks |
+| `discord.reply` | publish | community | `channel_id, message_id, content, reason` — parks |
+
+## Integration: `notion`
+
+| Tool | Class | Mode | Input |
+|---|---|---|---|
+| `notion.search` | read | read | `query, kind?, limit?` |
+| `notion.get_page` | read | read | `page_id` |
+| `notion.query_database` | read | read | `database_id, filter?, sorts?, limit?` |
+| `notion.create_page` | write | write | `parent_page_id?, parent_database_id?, title, markdown?, properties?` |
+| `notion.append` | write | write | `page_id, markdown` |
+| `notion.update_page` | write | write | `page_id, properties` |
+
+## Integration: `github`
+
+| Tool | Class | Mode | Input |
+|---|---|---|---|
+| `github.repos` | read | read | `org?, limit?` |
+| `github.issues` | read | read | `repo, state?, labels?, limit?` |
+| `github.create_issue` | write | write | `repo, title, body, labels?` |
+| `github.comment` | write | write | `repo, number, body` |
+| `github.pulls` | read | read | `repo, state?, limit?` |
+| `github.create_pr` | write | write | `repo, head, base, title, body` |
+| `github.merge_pr` | deploy | ship | `repo, number, env, method?, reason` |
+| `github.commits` | read | read | `repo, branch?, limit?` |
+| `github.file` | read | read | `repo, path, ref?` |
+
+## Integration: `hubspot`
+
+| Tool | Class | Mode | Input |
+|---|---|---|---|
+| `hubspot.search_contacts` | read | read | `query, limit?` |
+| `hubspot.create_contact` | write | write | `email, firstname?, lastname?, phone?, company?, properties?` |
+| `hubspot.update_contact` | write | write | `contact_id, properties` |
+| `hubspot.deals` | read | read | `stage?, limit?` |
+| `hubspot.create_deal` | write | write | `name, amount?, stage?, pipeline?, contact_id?` |
+| `hubspot.add_note` | write | write | `contact_id, body` |
+
+## Integration: `webhook`
+
+| Tool | Class | Mode | Input |
+|---|---|---|---|
+| `webhook.call` | send | call | `url, method?, body?, headers?, reason` |
+
+## Integration: `stripe`
+
+| Tool | Class | Mode | Input |
+|---|---|---|---|
+| `stripe.balance` | read | read | — |
+| `stripe.payments` | read | read | `limit?, since?` |
+| `stripe.customers` | read | read | `query?, limit?` |
+| `stripe.payouts` | read | read | `limit?` |
+
+## Integration: `razorpay`
+
+| Tool | Class | Mode | Input |
+|---|---|---|---|
+| `razorpay.payments` | read | read | `limit?, since?` |
+| `razorpay.settlements` | read | read | `limit?` |
+| `razorpay.payment_links` | read | read | `limit?` |
+| `razorpay.orders` | read | read | `limit?` |

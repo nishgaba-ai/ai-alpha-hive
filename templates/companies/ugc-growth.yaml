@@ -42,7 +42,7 @@ roles:
     model: anthropic/claude-fable-5-1
     effort: xhigh
     reports_to: board
-    tools: [task.*, agent.list, message.*, web.*, content.*, creators.*, report.weekly, artifact.save, telegram.notify]
+    tools: [task.*, agent.list, message.*, web.*, content.*, creators.*, report.weekly, artifact.save, telegram.notify, youtube.*, tiktok.*, google-sheets.*, discord:read]
     budget: { monthly: 5000 }
     prompt: roles/growth-lead.md
 
@@ -52,7 +52,7 @@ roles:
     model: anthropic/claude-opus-5
     effort: high
     reports_to: growth-lead
-    tools: [task.update, task.list, message.*, web.*, content.*, artifact.save]
+    tools: [task.update, task.list, message.*, web.*, content.*, artifact.save, youtube:read, tiktok:read, google-sheets.*]
     budget: { monthly: 4000 }
     prompt: roles/format-tester.md
 
@@ -62,7 +62,7 @@ roles:
     model: anthropic/claude-opus-5
     effort: high
     reports_to: growth-lead
-    tools: [task.update, task.list, message.*, web.*, email.*, creators.list, creators.add, artifact.save]
+    tools: [task.update, task.list, message.*, web.*, email.*, creators.list, creators.add, artifact.save, whatsapp.*, gmail.*, discord.*, google-sheets.*]
     budget: { monthly: 8000 }
     count: 2
     prompt: roles/creator-recruiter.md
@@ -73,7 +73,7 @@ roles:
     model: anthropic/claude-sonnet-5
     effort: medium
     reports_to: growth-lead
-    tools: [task.update, task.list, message.*, email.*, creators.*, artifact.save]
+    tools: [task.update, task.list, message.*, email.*, creators.*, artifact.save, whatsapp.*, google-sheets.*, discord.*]
     budget: { monthly: 4000 }
     prompt: roles/creator-ops.md
 
@@ -83,7 +83,7 @@ roles:
     model: anthropic/claude-sonnet-5
     effort: medium
     reports_to: growth-lead
-    tools: [task.update, task.list, message.*, creators.list, creators.stats, ga4.*, wallet.read, report.weekly, artifact.save]
+    tools: [task.update, task.list, message.*, creators.list, creators.stats, ga4.*, wallet.read, report.weekly, artifact.save, youtube.analytics, google-sheets.*]
     budget: { monthly: 2000 }
     prompt: roles/analyst.md
 
@@ -106,3 +106,16 @@ integrations:
     modes: [read]
   - id: telegram
     modes: [notify]
+
+  - id: youtube
+    modes: [read, engage, publish]
+  - id: tiktok
+    modes: [read, publish]
+  - id: discord
+    modes: [read, community]
+  - id: google-sheets
+    modes: [read, write]
+  - id: whatsapp
+    modes: [read, send]
+  - id: gmail
+    modes: [read, send]

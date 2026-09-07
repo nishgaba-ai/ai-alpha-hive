@@ -10,7 +10,7 @@ export const AUTH: OAuthConfig = {
   scopes: ["https://www.googleapis.com/auth/analytics.readonly", "https://www.googleapis.com/auth/webmasters.readonly"],
   tokenAuth: "body",
   extraAuthorizeParams: { access_type: "offline", prompt: "consent" },
-  guide: "console.cloud.google.com → APIs & Services → enable Google Analytics Data API and Search Console API → Credentials → OAuth client (Web application) → Authorized redirect URIs = the one shown here; copy Client ID and Client Secret. One Google connection serves GA4 and Search Console.",
+  guide: "console.cloud.google.com → APIs & Services → enable Google Analytics Data API and Search Console API → Credentials → OAuth client (Web application) → Authorized redirect URIs = the one shown here; copy Client ID and Client Secret. One Google connection serves every Google integration you enable (GA4, Search Console, Drive, Sheets, Calendar, Gmail, YouTube).",
 };
 import { googleAccessToken } from "../../src/integrations/google.js";
 

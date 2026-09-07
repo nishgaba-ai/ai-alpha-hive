@@ -178,11 +178,48 @@ and never includes secret values.
 | `postiz` | read, publish | POSTIZ_API_KEY (channels connect inside Postiz) |
 | `blog` | read, publish | GitHub OAuth or GITHUB_ACCESS_TOKEN + BLOG_REPO (Markdown commits, host deploys) |
 | `instagram` | read, publish | Meta login (instagram_content_publish) |
+| `google-drive` | read, write, share | Google OAuth (GOOGLE_CLIENT_ID/SECRET + Connect) or GOOGLE_SERVICE_ACCOUNT_JSON |
+| `google-sheets` | read, write | Google OAuth or GOOGLE_SERVICE_ACCOUNT_JSON (share the sheet with its email) |
+| `google-calendar` | read, schedule | Google OAuth (calendar scope) |
+| `gmail` | read, send | Google OAuth (gmail.readonly + gmail.send; test user while in Testing, or a verified app) |
+| `whatsapp` | read, send | WHATSAPP_ACCESS_TOKEN, WHATSAPP_PHONE_NUMBER_ID (+ WHATSAPP_BUSINESS_ACCOUNT_ID for templates; META_WEBHOOK_VERIFY_TOKEN, WHATSAPP_APP_SECRET for the webhook) |
+| `facebook` | read, publish, engage | Meta login (pages_manage_posts…) or FACEBOOK_PAGE_ACCESS_TOKEN + FACEBOOK_PAGE_ID |
+| `youtube` | read, engage, publish | Google login with the YouTube scopes (shares GOOGLE_CLIENT_ID/SECRET and the token with GA4, Search Console and the other Google integrations) |
+| `tiktok` | read, publish | TikTok login (Login Kit + Content Posting API, PKCE, client_key); pull-from-URL needs a verified domain |
+| `discord` | read, community | DISCORD_BOT_TOKEN (+ DISCORD_GUILD_ID for channels; DISCORD_WEBHOOK_URL posts without a bot) |
+| `notion` | read, write | NOTION_TOKEN |
+| `github` | read, write, ship | GITHUB_ACCESS_TOKEN |
+| `hubspot` | read, write | HUBSPOT_TOKEN |
+| `webhook` | call | WEBHOOK_ALLOWED_HOSTS |
+| `stripe` | read | STRIPE_SECRET_KEY |
+| `razorpay` | read | RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET |
 
 Revenue webhooks for Razorpay and Stripe are core (see treasury.md), and
-any MCP server can be attached as an integration (below). Next in line:
-`whatsapp` (Meta Cloud API), `google-drive`, `notion`, and a `github`
-integration to replace the `gh` shell-outs.
+any MCP server can be attached as an integration (below). Thirty
+integrations ship today; next in line: Pinterest, Shopify, Zoho, and Meta
+Embedded Signup for WhatsApp.
+
+## Inbound conversations (WhatsApp, Instagram DMs, Messenger)
+
+Messaging channels are two-way. Outbound goes through the channel's send
+tools (gated: first contact parks, replies flow). Inbound arrives on one
+Meta webhook per company and lands in `inbound_messages`
+(runtime/src/inbound.ts), where agents read it with the channel's `inbox`
+tool and the board sees it under **Inbox → Conversations**.
+
+1. Store `META_WEBHOOK_VERIFY_TOKEN` (any string you invent) and the app
+   secret (`WHATSAPP_APP_SECRET`, or the `META_CLIENT_SECRET` /
+   `INSTAGRAM_CLIENT_SECRET` already there) in the vault.
+2. In the Meta app → Webhooks, set the callback URL to
+   `https://api.<domain>/api/webhooks/meta/<company-slug>` with that verify
+   token, and subscribe to `messages` (WhatsApp), `messages` (Instagram) and
+   `messages` (Page).
+3. Every POST is checked against `X-Hub-Signature-256`; messages are
+   recorded once (provider message id), statuses become `outbound.status`
+   events, echoes of our own replies are dropped.
+
+The same table serves Discord and anything else that pushes messages;
+`recordInbound()` is the only write path.
 
 ## Attach an MCP server
 

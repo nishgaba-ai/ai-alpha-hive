@@ -110,9 +110,4 @@ integrations:
 });
 
 /** Used by the gate: has this address been contacted before? */
-export function knownContact(companyId: string, address: string): boolean {
-  return !!one("SELECT 1 FROM contacts WHERE company_id = ? AND address = ?", companyId, address.toLowerCase());
-}
-export function knownContacts(companyId: string): string[] {
-  return all<{ address: string }>("SELECT address FROM contacts WHERE company_id = ?", companyId).map((r) => r.address);
-}
+export { knownContact, knownContacts } from "../../src/contacts.js";

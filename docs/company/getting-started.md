@@ -43,6 +43,26 @@ that person approve from their phone.
 
 ## 4. Connect what the roles need
 
+Thirty integrations ship in the library, grouped the way a marketing and
+sales team thinks about them:
+
+- **Publish:** blog (GitHub), LinkedIn, Instagram, Facebook Pages, X,
+  Reddit, YouTube, TikTok, Postiz (one place for every network), Discord.
+- **Talk to people:** email (Postmark), Gmail, WhatsApp Business, Slack,
+  Telegram, and the Meta webhook that brings WhatsApp, Instagram DM and
+  Messenger conversations into **Inbox → Conversations**.
+- **Work in your files:** Google Drive, Google Sheets, Google Calendar,
+  Notion, GitHub, HubSpot.
+- **Measure:** GA4, Search Console, GEO probes, Meta Ads, YouTube analytics.
+- **Money, read-only:** Stripe, Razorpay (the treasury tools do the writes).
+- **Anything else:** a generic outbound webhook (Zapier, Make, n8n) and any
+  MCP server as an integration.
+
+One Google connection covers Analytics, Search Console, Drive, Sheets,
+Calendar, Gmail and YouTube: the runtime asks for every scope the enabled
+Google integrations need. The same holds for the Meta app across Ads,
+Instagram and Facebook Pages.
+
 **Integrations** lists every plugin with what it needs and how to get it.
 Two paths:
 

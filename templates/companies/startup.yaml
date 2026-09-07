@@ -51,7 +51,7 @@ roles:
     model: anthropic/claude-fable-5-1
     effort: xhigh
     reports_to: board
-    tools: [task.*, agent.list, message.*, web.*, report.weekly, artifact.save, telegram.notify]
+    tools: [task.*, agent.list, message.*, web.*, report.weekly, artifact.save, telegram.notify, notion.*, google-drive.*, google-calendar.*, stripe.*, razorpay.*]
     budget: { monthly: 2000 }
     prompt: roles/ceo.md
 
@@ -61,7 +61,7 @@ roles:
     model: claude-code
     effort: xhigh
     reports_to: ceo
-    tools: [hive.*, github.pr.open, github.issue.create, task.update, task.list, message.*, artifact.save, web.fetch]
+    tools: [hive.*, github.pr.open, github.issue.create, task.update, task.list, message.*, artifact.save, web.fetch, github.*, notion:read]
     budget: { monthly: 8000 }
     workspace: true
     count: 1
@@ -73,7 +73,7 @@ roles:
     model: anthropic/claude-opus-5
     effort: high
     reports_to: ceo
-    tools: [task.update, task.list, message.*, web.*, content.*, email.send, wallet.read, artifact.save]
+    tools: [task.update, task.list, message.*, web.*, content.*, email.send, wallet.read, artifact.save, google-drive.*, google-sheets.*, notion.*]
     budget: { monthly: 10000, per_tx: 1000 }
     escalate: { on: [publish.denied, spend.denied], to: ceo }
     prompt: roles/marketer.md
@@ -84,7 +84,7 @@ roles:
     model: anthropic/claude-sonnet-5
     effort: medium
     reports_to: ceo
-    tools: [wallet.read, card.transactions, task.list, report.weekly, message.send, artifact.save]
+    tools: [wallet.read, card.transactions, task.list, report.weekly, message.send, artifact.save, google-sheets.*, stripe.*, razorpay.*, invoice.*]
     budget: { monthly: 1000 }
     prompt: roles/finance.md
 
@@ -103,3 +103,20 @@ integrations:
     modes: [send, read]
   - id: telegram
     modes: [notify]
+
+  - id: github
+    modes: [read, write, ship]
+  - id: notion
+    modes: [read, write]
+  - id: google-drive
+    modes: [read, write, share]
+  - id: google-sheets
+    modes: [read, write]
+  - id: gmail
+    modes: [read, send]
+  - id: google-calendar
+    modes: [read, schedule]
+  - id: stripe
+    modes: [read]
+  - id: razorpay
+    modes: [read]

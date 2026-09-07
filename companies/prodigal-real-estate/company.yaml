@@ -38,7 +38,7 @@ roles:
     model: mock
     effort: xhigh
     reports_to: board
-    tools: [task.*, agent.list, message.*, web.*, content.*, report.weekly, artifact.save, telegram.notify]
+    tools: [task.*, agent.list, message.*, web.*, content.*, report.weekly, artifact.save, telegram.notify, whatsapp.*, google-calendar.*, hubspot.*, google-sheets.*, google-drive.*, gmail.*]
     budget: { monthly: 4000 }
     prompt: roles/principal-broker.md
 
@@ -48,7 +48,7 @@ roles:
     model: mock
     effort: high
     reports_to: principal
-    tools: [task.update, task.list, message.*, web.*, email.*, payment-link.create, artifact.save]
+    tools: [task.update, task.list, message.*, web.*, email.*, payment-link.create, artifact.save, whatsapp.*, gmail.*, google-calendar.*, hubspot.*, google-sheets.*]
     budget: { monthly: 8000 }
     count: 2
     prompt: roles/sales.md
@@ -59,7 +59,7 @@ roles:
     model: mock
     effort: medium
     reports_to: principal
-    tools: [task.update, task.list, message.*, web.*, artifact.save]
+    tools: [task.update, task.list, message.*, web.*, artifact.save, google-sheets.*, google-drive:read]
     budget: { monthly: 3000 }
     prompt: roles/researcher.md
 
@@ -69,7 +69,7 @@ roles:
     model: mock
     effort: high
     reports_to: principal
-    tools: [task.update, task.list, message.*, web.*, content.*, ads-meta.*, wallet.read, card.purchase, artifact.save]
+    tools: [task.update, task.list, message.*, web.*, content.*, ads-meta.*, wallet.read, card.purchase, artifact.save, facebook.*, google-drive.*, google-sheets:read]
     budget: { monthly: 25000, per_tx: 3000 }
     prompt: roles/marketer.md
 
@@ -90,3 +90,18 @@ integrations:
     modes: [read, manage, launch]
   - id: telegram
     modes: [notify]
+
+  - id: whatsapp
+    modes: [read, send]
+  - id: facebook
+    modes: [read, publish, engage]
+  - id: google-sheets
+    modes: [read, write]
+  - id: google-calendar
+    modes: [read, schedule]
+  - id: gmail
+    modes: [read, send]
+  - id: hubspot
+    modes: [read, write]
+  - id: google-drive
+    modes: [read, write, share]

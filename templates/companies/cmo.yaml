@@ -52,7 +52,7 @@ roles:
     model: anthropic/claude-fable-5-1
     effort: xhigh
     reports_to: board
-    tools: [task.*, agent.list, message.*, web.*, content.*, blog.*, linkedin.*, ads-meta.*, ga4.*, search-console.*, creators.list, creators.stats, wallet.read, card.request, report.weekly, artifact.save, telegram.notify]
+    tools: [task.*, agent.list, message.*, web.*, content.*, blog.*, linkedin.*, ads-meta.*, ga4.*, search-console.*, creators.list, creators.stats, wallet.read, card.request, report.weekly, artifact.save, telegram.notify, google-drive.*, google-sheets.*, notion.*, whatsapp:read, youtube.channel, facebook.pages]
     budget: { monthly: 5000, per_tx: 2000 }
     prompt: roles/cmo.md
 
@@ -62,7 +62,7 @@ roles:
     model: anthropic/claude-opus-5
     effort: high
     reports_to: cmo
-    tools: [task.update, task.list, message.*, web.*, content:draft, artifact.save]
+    tools: [task.update, task.list, message.*, web.*, content:draft, artifact.save, google-drive.*, notion.*]
     budget: { monthly: 3000 }
     prompt: roles/strategist.md
 
@@ -72,7 +72,7 @@ roles:
     model: anthropic/claude-opus-5
     effort: high
     reports_to: cmo
-    tools: [task.update, task.list, message.*, web.*, search-console.*, ga4.*, content:draft, blog.*, artifact.save]
+    tools: [task.update, task.list, message.*, web.*, search-console.*, ga4.*, content:draft, blog.*, artifact.save, google-sheets.*, google-drive:read]
     budget: { monthly: 3000 }
     prompt: roles/seo.md
 
@@ -92,7 +92,7 @@ roles:
     model: anthropic/claude-opus-5
     effort: high
     reports_to: cmo
-    tools: [task.update, task.list, message.*, web.*, reddit.*, x.*, linkedin.*, instagram.*, postiz.*, blog:read, content.*, artifact.save]
+    tools: [task.update, task.list, message.*, web.*, reddit.*, x.*, linkedin.*, instagram.*, postiz.*, blog:read, content.*, artifact.save, youtube.*, facebook.*, whatsapp.*, google-sheets:read]
     budget: { monthly: 6000 }
     prompt: roles/social.md
 
@@ -102,7 +102,7 @@ roles:
     model: anthropic/claude-opus-5
     effort: high
     reports_to: cmo
-    tools: [task.update, task.list, message.*, web.*, content:draft, artifact.save]
+    tools: [task.update, task.list, message.*, web.*, content:draft, artifact.save, google-drive.*, notion.*]
     budget: { monthly: 3000 }
     count: 2
     prompt: roles/writer.md
@@ -125,7 +125,7 @@ roles:
     model: anthropic/claude-sonnet-5
     effort: medium
     reports_to: cmo
-    tools: [task.update, task.list, message.*, web.*, email.*, creators.*, artifact.save]
+    tools: [task.update, task.list, message.*, web.*, email.*, creators.*, artifact.save, whatsapp.*, gmail.*, google-sheets.*]
     budget: { monthly: 4000 }
     prompt: roles/creator-ops.md
 
@@ -135,7 +135,7 @@ roles:
     model: anthropic/claude-sonnet-5
     effort: medium
     reports_to: cmo
-    tools: [task.update, task.list, message.*, ga4.*, search-console.*, ads-meta.insights, linkedin.analytics, creators.stats, wallet.read, card.transactions, report.weekly, artifact.save]
+    tools: [task.update, task.list, message.*, ga4.*, search-console.*, ads-meta.insights, linkedin.analytics, creators.stats, wallet.read, card.transactions, report.weekly, artifact.save, google-sheets.*, youtube.analytics, facebook.insights, webhook.call]
     budget: { monthly: 1500 }
     prompt: roles/analyst.md
 
@@ -192,3 +192,20 @@ integrations:
     modes: [manage, payout]
   - id: telegram
     modes: [notify]
+
+  - id: youtube
+    modes: [read, engage, publish]
+  - id: facebook
+    modes: [read, publish, engage]
+  - id: whatsapp
+    modes: [read, send]
+  - id: google-drive
+    modes: [read, write, share]
+  - id: google-sheets
+    modes: [read, write]
+  - id: gmail
+    modes: [read, send]
+  - id: notion
+    modes: [read, write]
+  - id: webhook
+    modes: [call]

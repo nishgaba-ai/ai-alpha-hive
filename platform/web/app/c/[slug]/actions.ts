@@ -64,3 +64,10 @@ export async function updateTask(form: FormData) {
   revalidatePath(`/c/${slug}/tasks`);
   revalidatePath(`/c/${slug}`);
 }
+
+export async function markInboundRead(form: FormData) {
+  const slug = String(form.get("slug"));
+  await requireCompany(slug, "company:view");
+  await hive(`/api/companies/${slug}/inbound/read`, { method: "POST", body: JSON.stringify({ channel: form.get("channel"), thread_id: form.get("thread_id") }) });
+  revalidatePath(`/c/${slug}/inbox`);
+}

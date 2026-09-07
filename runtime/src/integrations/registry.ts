@@ -58,6 +58,8 @@ export type OAuthConfig = {
   pkce?: boolean;
   /** how client credentials go to the token endpoint */
   tokenAuth?: "basic" | "body";
+  /** parameter name for the client id (TikTok uses client_key) */
+  clientIdParam?: "client_id" | "client_key";
   extraAuthorizeParams?: Record<string, string>;
   /** where to create the app and what to paste as the redirect URI */
   guide: string;

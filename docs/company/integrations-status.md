@@ -25,10 +25,24 @@ button on each integration is the first thing to press after connecting.
 | ga4 | OAuth (Google) or service account | yes | no | |
 | search-console | OAuth (Google) or service account | yes | no | |
 | ads-meta | OAuth (Meta) or system-user token | yes | no | launch is publish + spend |
+| google-drive | OAuth (Google) or service account | yes | no | Docs export as Markdown; create_doc via Docs API batchUpdate; share is send-class |
+| google-sheets | OAuth (Google) or service account | yes | no | USER_ENTERED writes; healthcheck uses Drive about.get (drive.file scope) |
+| google-calendar | OAuth (Google) | yes | no | create_event sends invites (sendUpdates=all), optional Meet link; no service-account path |
+| gmail | OAuth (Google) | yes | no | restricted scopes (test user or verified app; Testing connections expire in 7 days); replies set In-Reply-To/References |
+| whatsapp | System User token | yes | no | Cloud API; inbox via /api/webhooks/meta/<slug>; free-form only inside the 24-hour window |
+| facebook | OAuth (Meta, shared with ads-meta) or Page token | yes | no | Page token resolved via /me/accounts; reply_comment parks as first contact |
+| youtube | OAuth (Google) | yes | no | Data API v3 + Analytics API; upload streams a public URL into a resumable upload (512 MB cap, private by default) |
+| tiktok | OAuth (PKCE, client_key) | yes | no | Display API + Content Posting API (pull-from-URL); unaudited apps post SELF_ONLY only; source domain must be verified |
+| discord | bot token or webhook | yes | no | REST v10; reading others' message content needs the Message Content intent |
+| notion | API key | yes | no | Read and write the pages and databases the board shares with the integration: search, render pages to Markdown |
+| github | GITHUB OAuth | yes | no | Repositories, issues, pull requests, commits and files; merging is a deploy the board gates. |
+| hubspot | API key | yes | no | CRM contacts, deals and notes: search and create contacts, keep the pipeline current, log notes against people |
+| webhook | API key | yes | no | Send JSON to Zapier, Make, n8n or any allowlisted endpoint; signed when a shared secret is set. |
+| stripe | API key | yes | no | Read-only view of the Stripe account: balance, payments, customers and payouts. |
+| razorpay | API key | yes | no | Read-only view of the Razorpay account: payments, settlements, payment links and orders in INR. |
 
-Not built yet (declared in plans): Razorpay/Stripe webhooks that post
-revenue, WhatsApp, Google Drive, Notion, the MCP bridge, Stripe Issuing
-cards, registrar/DNS.
+Not built yet: Pinterest, Shopify, Zoho; Meta Embedded Signup for
+WhatsApp (a System User token is pasted today); emailing invite links.
 
 ## Core money and infrastructure modules
 

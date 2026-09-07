@@ -30,7 +30,13 @@ function b64url(b: Buffer): string {
   return b.toString("base64").replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
 }
 
-export function startOAuth(companyId: string, slug: string, integrationId: string, auth: OAuthConfig, secrets: SecretResolver): { url: string } {
+/**
+ * Integrations that share a prefix (every Google one, the Meta pair) share
+ * one token, so one Connect must ask for every scope the company will use.
+ * `extraScopes` is the union the server computes from the integrations the
+ * company enabled with the same prefix.
+ */
+export function startOAuth(companyId: string, slug: string, integrationId: string, auth: OAuthConfig, secrets: SecretResolver, extraScopes: string[] = []): { url: string } {
   const clientId = secrets.get(`${auth.prefix}_CLIENT_ID`);
   if (!clientId) throw new Error(`${auth.prefix}_CLIENT_ID is not in the vault — create the app first (see the integration's guidance)`);
   for (const [k, v] of pending) if (Date.now() - v.created > 10 * 60_000) pending.delete(k);
@@ -38,9 +44,9 @@ export function startOAuth(companyId: string, slug: string, integrationId: strin
   const entry: Pending = { companyId, integrationId, slug, auth, created: Date.now() };
   const u = new URL(auth.authorizeUrl);
   u.searchParams.set("response_type", "code");
-  u.searchParams.set("client_id", clientId);
+  u.searchParams.set(auth.clientIdParam ?? "client_id", clientId);
   u.searchParams.set("redirect_uri", redirectUri());
-  u.searchParams.set("scope", auth.scopes.join(" "));
+  u.searchParams.set("scope", [...new Set([...auth.scopes, ...extraScopes])].join(" "));
   u.searchParams.set("state", state);
   if (auth.pkce) {
     entry.verifier = b64url(randomBytes(48));
@@ -59,7 +65,7 @@ async function tokenRequest(auth: OAuthConfig, secrets: SecretResolver, params: 
   const headers: Record<string, string> = { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json" };
   if (auth.tokenAuth === "basic") headers.Authorization = "Basic " + Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
   else {
-    body.set("client_id", clientId);
+    body.set(auth.clientIdParam ?? "client_id", clientId);
     if (clientSecret) body.set("client_secret", clientSecret);
   }
   const res = await fetch(auth.tokenUrl, { method: "POST", headers, body });

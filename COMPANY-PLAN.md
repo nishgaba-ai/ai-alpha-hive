@@ -367,6 +367,20 @@ referenced as `env:NAME` or `vault:NAME`, never literal.
   shape (website intake, strategy docs, SEO/GEO/social/influencer roles in
   parallel), all inside the AI CMO template.
 
+## 12d. The integrations library, second wave (added 2026-09-07)
+
+Fifteen more plugins on the same contract, so the library covers what a
+one-human company actually touches every day: Google Drive, Google Sheets,
+Google Calendar, Gmail, YouTube (upload, analytics, comments), TikTok
+(Content Posting), Facebook Pages, WhatsApp Business (Cloud API, two-way
+through the Meta webhook), Discord, Notion, GitHub, HubSpot, Stripe and
+Razorpay (read-only finance views), and a generic outbound webhook for
+Zapier / Make / n8n. Shared-prefix OAuth (one Google connection, one Meta
+connection) asks for the union of the enabled integrations' scopes.
+Inbound conversations from WhatsApp, Instagram and Messenger land in one
+table and one Inbox tab; replies always go out through the gated send
+tools, so first contact still parks.
+
 ## 13. What is built and what is not (2026-09-07)
 
 **Built and exercised end to end (mock provider, unit tests):** company
@@ -386,14 +400,17 @@ live data.
 **Built, not yet exercised against the real service (needs keys or
 accounts):** Anthropic provider (the live key's account needs credits),
 OpenRouter and Ollama providers, the Claude Code harness on the worker,
-every integration's API calls, Stripe Issuing, Cloudflare DNS, Porkbun
-registration, server STT/TTS, attaching a real MCP server.
+every one of the thirty integrations' API calls (the offline tests only
+prove they fail closed without credentials), the Meta inbound webhook
+against a real app, Stripe Issuing, Cloudflare DNS, Porkbun registration,
+server STT/TTS, attaching a real MCP server.
 
 **Designed, not built:** Vercel hosting of the UI (the web app keeps
 users, sessions and audit in SQLite; Vercel needs a hosted database —
 see docs/company/deploy.md); TDS and the quarterly pack; inter-company
 transfers; emailing invite links (the owner copies the link today);
-WhatsApp, Google Drive and Notion integrations.
+Pinterest, Shopify and Zoho integrations; Meta Embedded Signup for WhatsApp
+(today a System User token is pasted).
 
 **Known limits:** inference cost is converted to INR at a fixed rate for
 visibility; the board assistant on the mock provider answers with a canned
